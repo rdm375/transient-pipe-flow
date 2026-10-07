@@ -154,20 +154,172 @@ The previous time-level solution, $\bm u^n$, is the initial Newton guess. Dampin
 For the reduced V1 equations, each interior continuity residual depends only on $p_i$, $\mdot_{i-1/2}$, and $\mdot_{i+1/2}$ at the new time level. Each interior momentum residual depends only on $p_i$, $\mdot_{i+1/2}$, and $p_{i+1}$. This locality produces a narrow sparse/banded Jacobian.
 
 \section{Boundary conditions}
-The first transient configuration prescribes inlet pressure and outlet mass flow,
+
+The first transient configuration prescribes inlet pressure and outlet mass
+flow,
 \begin{equation}
 p(0,t)=p_{\mathrm{in}}(t),
 \qquad
 \mdot(L,t)=\mdot_{\mathrm{out}}(t).
 \end{equation}
-Boundary conditions contribute residual equations rather than being hidden inside the nonlinear solver. Boundary histories are evaluated at the actual time levels $t^n$ and $t^{n+1}$; they are not pre-averaged by $\theta$.
+Boundary histories are evaluated at the actual time levels $t^n$ and
+$t^{n+1}$; they are not pre-averaged before application of the theta
+method.
 
-Boundary pressure nodes correspond naturally to half control volumes. A globally conservative linepack calculation therefore uses trapezoidal spatial weights,
+\subsection{Boundary half control volumes}
+
+Pressure and density are stored at the nodes
+\[
+x_i=i\Delta x,\qquad i=0,\ldots,N,
+\]
+while the interior mass-flow unknowns are stored at
+$x_{i+1/2}$.  The pressure nodes $i=0$ and $i=N$ therefore represent
+half control volumes of length $\Delta x/2$.
+
+Define the theta-weighted mass flow
 \begin{equation}
-M=A\Delta x\left[\frac12\rho_0+\sum_{i=1}^{N-1}\rho_i+\frac12\rho_N\right].
+\mdot^\theta
+=
+\theta\mdot^{n+1}+(1-\theta)\mdot^n.
+\label{eq:thetaflow}
+\end{equation}
+
+For an interior pressure control volume, $i=1,\ldots,N-1$, the
+fully discrete integral continuity equation is
+\begin{equation}
+A\Delta x
+\frac{\rho_i^{n+1}-\rho_i^n}{\Delta t}
++
+\mdot_{i+1/2}^{\theta}
+-
+\mdot_{i-1/2}^{\theta}
+=0.
+\label{eq:interior_cv_mass}
+\end{equation}
+This equation is equivalent to the interior continuity residual given
+earlier, multiplied by $\Delta x$.
+
+At the inlet half control volume,
+\begin{equation}
+\frac{A\Delta x}{2}
+\frac{\rho_0^{n+1}-\rho_0^n}{\Delta t}
++
+\mdot_{1/2}^{\theta}
+-
+\mdot_{\mathrm{in}}^{\theta}
+=0.
+\label{eq:inlet_half_cv}
+\end{equation}
+At the outlet half control volume,
+\begin{equation}
+\frac{A\Delta x}{2}
+\frac{\rho_N^{n+1}-\rho_N^n}{\Delta t}
++
+\mdot_{\mathrm{out}}^{\theta}
+-
+\mdot_{N-1/2}^{\theta}
+=0.
+\label{eq:outlet_half_cv}
+\end{equation}
+
+Thus the boundary nodes participate in storage exactly as half cells,
+rather than being treated as zero-volume algebraic points.
+
+\subsection{Prescribed inlet pressure and outlet flow}
+
+For the initial boundary-condition pair,
+\begin{equation}
+p_0^{n+1}=p_{\mathrm{in}}(t^{n+1}),
+\qquad
+\mdot_{\mathrm{out}}^{n+1}
+=
+\mdot_{\mathrm{out,prescribed}}(t^{n+1}).
+\label{eq:prescribed_bc}
+\end{equation}
+
+The inlet pressure is prescribed, but the inlet mass flow is not.
+Equation~\eqref{eq:inlet_half_cv} therefore determines
+$\mdot_{\mathrm{in}}^{n+1}$ consistently with the change of mass stored
+in the inlet half cell.  Similarly, the outlet mass flow is prescribed,
+while Eq.~\eqref{eq:outlet_half_cv} supplies the continuity equation for
+the outlet pressure node.
+
+For implementation it is convenient to regard
+$\mdot_{\mathrm{in}}^{n+1}$ as an additional boundary-flow unknown.
+The new-time unknowns may therefore be organized as
+\begin{equation}
+\bm u^{n+1}
+=
+\left[
+p_0,\,
+\mdot_{\mathrm{in}},\,
+\mdot_{1/2},\,
+p_1,\,
+\ldots,\,
+\mdot_{N-1/2},\,
+p_N
+\right]^{T}_{n+1},
+\end{equation}
+with the prescribed outlet mass flow supplied by the boundary history.
+
+The corresponding equations consist of the prescribed inlet-pressure
+equation, the inlet half-cell continuity equation, $N-1$ interior
+continuity equations, the outlet half-cell continuity equation, and
+$N$ interior momentum equations.  The inlet boundary-flow variable may
+also be eliminated analytically from Eq.~\eqref{eq:inlet_half_cv};
+retaining it explicitly is useful for diagnostics and for evaluating
+the global mass balance.
+
+\subsection{Exact discrete global mass conservation}
+
+Define discrete pipe mass (linepack) by trapezoidal spatial weights,
+\begin{equation}
+M^n
+=
+A\Delta x
+\left[
+\frac12\rho_0^n
++
+\sum_{i=1}^{N-1}\rho_i^n
++
+\frac12\rho_N^n
+\right].
 \label{eq:linepack}
 \end{equation}
-The precise boundary residual/control-volume treatment will be derived consistently before implementation.
+
+Summing the inlet half-cell equation,
+all interior continuity equations, and the outlet half-cell equation
+causes every interior staggered mass-flow term to cancel exactly.
+The result is
+\begin{equation}
+\frac{M^{n+1}-M^n}{\Delta t}
++
+\mdot_{\mathrm{out}}^\theta
+-
+\mdot_{\mathrm{in}}^\theta
+=0,
+\end{equation}
+or equivalently
+\begin{equation}
+\boxed{
+\frac{M^{n+1}-M^n}{\Delta t}
+=
+\mdot_{\mathrm{in}}^\theta
+-
+\mdot_{\mathrm{out}}^\theta.}
+\label{eq:global_mass_balance}
+\end{equation}
+
+Consequently, global mass conservation is an algebraic property of the
+discrete continuity equations.  It does not depend on spatial or
+temporal refinement.  In an exact nonlinear solve,
+Eq.~\eqref{eq:global_mass_balance} holds to floating-point roundoff;
+with an iterative nonlinear solve, the observed defect is controlled
+by the continuity-residual convergence tolerance.
+
+This identity provides a particularly strong implementation test:
+the independently computed change in linepack must agree with the
+theta-weighted net boundary mass flow at every accepted time step.
 
 \section{Analytic constant-Z steady reference problem}
 Assume constant $Z$, $T$, $f_D$, $D$, and positive steady mass flow $\mdot_0$. Steady continuity gives
@@ -215,7 +367,7 @@ The implementation will be accepted incrementally using the following tests.
 \begin{enumerate}
 \item \textbf{Analytic steady residual.} Initialize Eq.~\eqref{eq:p2} and uniform $\mdot_0$; the assembled residual should be at roundoff/solver tolerance.
 \item \textbf{Steady-state preservation.} With constant boundaries, transient integration must preserve the initialized equilibrium for any tested $\theta$.
-\item \textbf{Global mass conservation.} The change in Eq.~\eqref{eq:linepack} must equal time-integrated boundary inflow minus outflow to the accuracy of the discrete time scheme.
+\item \textbf{Global mass conservation.} At every accepted time step, Eq.~\eqref{eq:global_mass_balance} must hold to nonlinear-solver and floating-point tolerance.  The independently computed change in linepack must equal the theta-weighted net boundary mass flow.
 \item \textbf{Relaxation to analytic steady state.} A deliberately inconsistent initial state must approach Eq.~\eqref{eq:p2} under steady boundary conditions.
 \item \textbf{Temporal refinement.} Transient quantities of interest must converge as $\Delta t$ is refined.
 \item \textbf{Spatial refinement.} Transient quantities of interest must converge as $\Delta x$ is refined.
