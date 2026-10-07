@@ -57,11 +57,11 @@
 
 ### M5 — Transient integration
 
-- [ ] Implement multi-step integration.
-- [ ] Implement downstream mass-flow ramp case.
-- [ ] Record pressure, mass-flow, linepack, and boundary histories.
-- [ ] Verify global mass conservation over complete simulation.
-- [ ] Verify relaxation to the analytic steady solution.
+- [x] Implement multi-step integration.
+- [x] Implement downstream mass-flow ramp case.
+- [x] Record pressure, mass-flow, linepack, and boundary histories.
+- [x] Verify global mass conservation over complete simulation.
+- [x] Verify relaxation to the analytic steady solution.
 
 ### M6 — Numerical characterization
 
