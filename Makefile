@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check docs clean
+.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check characterize docs clean
 
 all: steady-residual
 
@@ -82,6 +82,20 @@ check: steady-residual friction-check jacobian-check newton-check timestep-check
 	./$(BUILD_DIR)/newton_check
 	./$(BUILD_DIR)/timestep_check
 	./$(BUILD_DIR)/transient_integration_check
+
+characterize: $(BUILD_DIR)
+	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    src/fortran77/transient_integrate.f \
+	    tests/fortran77/numerical_characterization.f \
+	    -o $(BUILD_DIR)/numerical_characterization
+	./$(BUILD_DIR)/numerical_characterization
 
 docs:
 	cd docs && pdflatex -halt-on-error model.tex

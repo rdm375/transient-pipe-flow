@@ -65,11 +65,11 @@
 
 ### M6 — Numerical characterization
 
-- [ ] Temporal refinement study.
-- [ ] Spatial refinement study.
-- [ ] Theta study: 0.50, 0.55, 0.60, 0.65, 0.70, 0.80, 1.00.
-- [ ] Characterize numerical damping and transient accuracy.
-- [ ] Establish reference cases and tolerances.
+- [x] Temporal refinement study.
+- [x] Spatial refinement study.
+- [x] Theta study: 0.50, 0.55, 0.60, 0.65, 0.70, 0.80, 1.00.
+- [x] Characterize numerical damping and transient accuracy.
+- [x] Establish reference cases and tolerances.
 
 ### M7 — Modular physical models
 
