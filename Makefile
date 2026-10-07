@@ -26,6 +26,7 @@ check: steady-residual
 docs:
 	cd docs && pdflatex -halt-on-error model.tex
 	cd docs && pdflatex -halt-on-error model.tex
+	cd docs && pdflatex -halt-on-error model.tex
 
 clean:
 	rm -rf $(BUILD_DIR)
