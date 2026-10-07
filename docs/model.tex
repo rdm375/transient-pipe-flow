@@ -1,0 +1,259 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm,booktabs,array,hyperref,microtype}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\newcommand{\mdot}{\dot m}
+\newcommand{\R}{\mathcal R}
+\title{Isothermal Transient Pipe Simulator\\\large V1 Mathematical Model, Discretization, and Validation Plan}
+\author{Independent research implementation}
+\date{\today}
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Purpose and design principles}
+The project develops a modular one-dimensional transient gas-pipe simulator from public conservation laws and public numerical literature. The first CPU reference implementation will use an F77-compatible procedural style. A later C++ implementation will reproduce the same numerical algorithm before performance comparisons are attempted.
+
+Physical models, spatial discretization, temporal discretization, boundary conditions, thermodynamic closure, friction closure, and nonlinear/linear solution algorithms are to remain independently replaceable wherever mathematically possible. In particular, the reduced momentum equation used by V1 must be replaceable later by the full momentum equation without redesigning the time integrator or nonlinear solver.
+
+The symbol $\theta$ is reserved exclusively for the time-integration weight. The vector $\bm{\xi}$ denotes external simulation/TDAR input coordinates and is not a pressure variable.
+
+\section{V1 physical model}
+Consider a straight horizontal pipe of length $L$, diameter $D$, and constant area
+\begin{equation}
+A=\frac{\pi D^2}{4}.
+\end{equation}
+Let $x$ denote axial position, $t$ time, $p(x,t)$ pressure, $\rho(x,t)$ density, $v(x,t)$ axial velocity, and
+\begin{equation}
+\mdot(x,t)=A\rho v
+\end{equation}
+the mass-flow rate.
+
+\subsection{Mass conservation}
+For constant area,
+\begin{equation}
+\frac{\partial \rho}{\partial t}+\frac{\partial(\rho v)}{\partial x}=0,
+\end{equation}
+so
+\begin{equation}
+\boxed{A\frac{\partial \rho}{\partial t}+\frac{\partial\mdot}{\partial x}=0.}
+\label{eq:mass}
+\end{equation}
+
+\subsection{Full and reduced momentum equations}
+The one-dimensional isothermal momentum equation for a horizontal pipe may be written
+\begin{equation}
+\frac{1}{A}\frac{\partial\mdot}{\partial t}
++\frac{\partial}{\partial x}\left(\frac{\mdot^2}{A^2\rho}\right)
++\frac{\partial p}{\partial x}
++\frac{f_D}{2DA^2\rho}\mdot|\mdot|=0,
+\label{eq:fullmomentum}
+\end{equation}
+where $f_D$ is the Darcy friction factor. V1 neglects the convective momentum-flux term and solves
+\begin{equation}
+\boxed{
+\frac{1}{A}\frac{\partial\mdot}{\partial t}
++\frac{\partial p}{\partial x}
++\frac{f_D}{2DA^2\rho}\mdot|\mdot|=0.}
+\label{eq:reducedmomentum}
+\end{equation}
+Equation~\eqref{eq:fullmomentum} is retained as a planned interchangeable momentum model.
+
+\subsection{Thermodynamic closure}
+The pipe solver sees an EOS interface
+\begin{equation}
+\rho=\rho(p;T,\bm z),
+\end{equation}
+with $T$ and composition $\bm z$ fixed in V1. The initial validation EOS is constant-$Z$,
+\begin{equation}
+\rho=\frac{p}{ZR_sT}.
+\label{eq:constz}
+\end{equation}
+A future real-gas EOS can replace this closure without changing the pipe equations.
+
+\section{Staggered spatial discretization}
+Use a uniform pressure grid $x_i=i\Delta x$, $i=0,\ldots,N$, and locate mass flow at staggered positions $x_{i+1/2}$. Thus pressure/density represents storage at nodes and mass flow represents transport across neighboring faces.
+
+At an interior pressure node,
+\begin{equation}
+A\frac{d\rho_i}{dt}
++\frac{\mdot_{i+1/2}-\mdot_{i-1/2}}{\Delta x}=0.
+\label{eq:semimass}
+\end{equation}
+At a flow location,
+\begin{equation}
+\frac{1}{A}\frac{d\mdot_{i+1/2}}{dt}
++\frac{p_{i+1}-p_i}{\Delta x}
++S_{f,i+1/2}=0,
+\label{eq:semimomentum}
+\end{equation}
+where
+\begin{equation}
+S_{f,i+1/2}=\frac{f_{D,i+1/2}}{2DA^2\rho_{i+1/2}}
+\mdot_{i+1/2}|\mdot_{i+1/2}|.
+\end{equation}
+For V1 the spatial scheme supplies the arithmetic interpolation
+\begin{equation}
+\rho_{i+1/2}=\frac{\rho_i+\rho_{i+1}}{2}.
+\label{eq:face_density}
+\end{equation}
+The interpolation operation belongs to the spatial-discretization layer, not to the friction model.
+
+\section{Theta time integration}
+For
+\begin{equation}
+\frac{dy}{dt}+F(y)=0,
+\end{equation}
+the theta method is
+\begin{equation}
+\frac{y^{n+1}-y^n}{\Delta t}+\theta F^{n+1}+(1-\theta)F^n=0.
+\end{equation}
+The value of $\theta$ remains configurable. The project will characterize candidate values empirically rather than adopt an undocumented remembered default.
+
+\subsection{Continuity residual}
+The interior continuity residual is
+\begin{align}
+\R_{\rho,i}={}&
+A\frac{\rho(p_i^{n+1})-\rho(p_i^n)}{\Delta t} \\
+&+\frac{\theta}{\Delta x}
+\left(\mdot_{i+1/2}^{n+1}-\mdot_{i-1/2}^{n+1}\right) \\
+&+\frac{1-\theta}{\Delta x}
+\left(\mdot_{i+1/2}^{n}-\mdot_{i-1/2}^{n}\right),
+\end{align}
+with $\R_{\rho,i}=0$.
+
+\subsection{Momentum residual}
+The reduced-momentum residual is
+\begin{align}
+\R_{m,i+1/2}={}&
+\frac{\mdot_{i+1/2}^{n+1}-\mdot_{i+1/2}^{n}}{A\Delta t} \\
+&+\frac{\theta}{\Delta x}(p_{i+1}^{n+1}-p_i^{n+1})
++\theta S_{f,i+1/2}^{n+1} \\
+&+\frac{1-\theta}{\Delta x}(p_{i+1}^{n}-p_i^{n})
++(1-\theta)S_{f,i+1/2}^{n},
+\end{align}
+with $\R_{m,i+1/2}=0$.
+
+\section{Nonlinear solution}
+At each time step the new state satisfies
+\begin{equation}
+\bm{\R}(\bm u^{n+1};\bm u^n,\bm\xi)=\bm0.
+\end{equation}
+Newton iteration solves
+\begin{equation}
+J(\bm u_k)\Delta\bm u_k=-\bm\R(\bm u_k),
+\end{equation}
+followed by
+\begin{equation}
+\bm u_{k+1}=\bm u_k+\lambda\Delta\bm u_k,
+\qquad 0<\lambda\le1.
+\end{equation}
+The previous time-level solution, $\bm u^n$, is the initial Newton guess. Damping is available when a full Newton step is unsuitable.
+
+For the reduced V1 equations, each interior continuity residual depends only on $p_i$, $\mdot_{i-1/2}$, and $\mdot_{i+1/2}$ at the new time level. Each interior momentum residual depends only on $p_i$, $\mdot_{i+1/2}$, and $p_{i+1}$. This locality produces a narrow sparse/banded Jacobian.
+
+\section{Boundary conditions}
+The first transient configuration prescribes inlet pressure and outlet mass flow,
+\begin{equation}
+p(0,t)=p_{\mathrm{in}}(t),
+\qquad
+\mdot(L,t)=\mdot_{\mathrm{out}}(t).
+\end{equation}
+Boundary conditions contribute residual equations rather than being hidden inside the nonlinear solver. Boundary histories are evaluated at the actual time levels $t^n$ and $t^{n+1}$; they are not pre-averaged by $\theta$.
+
+Boundary pressure nodes correspond naturally to half control volumes. A globally conservative linepack calculation therefore uses trapezoidal spatial weights,
+\begin{equation}
+M=A\Delta x\left[\frac12\rho_0+\sum_{i=1}^{N-1}\rho_i+\frac12\rho_N\right].
+\label{eq:linepack}
+\end{equation}
+The precise boundary residual/control-volume treatment will be derived consistently before implementation.
+
+\section{Analytic constant-Z steady reference problem}
+Assume constant $Z$, $T$, $f_D$, $D$, and positive steady mass flow $\mdot_0$. Steady continuity gives
+\begin{equation}
+\mdot(x)=\mdot_0.
+\end{equation}
+Using Eq.~\eqref{eq:constz}, steady reduced momentum becomes
+\begin{equation}
+\frac{dp}{dx}+\frac{f_DZR_sT}{2DA^2}\frac{\mdot_0^2}{p}=0.
+\end{equation}
+Hence
+\begin{equation}
+\boxed{
+p^2(x)=p_{\mathrm{in}}^2-
+\frac{f_DZR_sT}{DA^2}\mdot_0^2 x,}
+\label{eq:p2}
+\end{equation}
+and
+\begin{equation}
+p(x)=\sqrt{p_{\mathrm{in}}^2-
+\frac{f_DZR_sT}{DA^2}\mdot_0^2x}.
+\end{equation}
+At $x=L$,
+\begin{equation}
+p_{\mathrm{out}}^2=p_{\mathrm{in}}^2-
+\frac{f_DZR_sTL}{DA^2}\mdot_0^2.
+\end{equation}
+
+\subsection{Exact nodal steady property of the V1 spatial scheme}
+With arithmetic face-density interpolation and constant $Z$,
+\begin{equation}
+\rho_{i+1/2}=\frac{p_i+p_{i+1}}{2ZR_sT}.
+\end{equation}
+The steady discrete momentum equation then implies
+\begin{equation}
+\boxed{
+\frac{p_{i+1}^2-p_i^2}{\Delta x}
+=-\frac{f_DZR_sT}{DA^2}\mdot_0^2.}
+\label{eq:discretep2}
+\end{equation}
+Thus the constant-$Z$, constant-friction V1 spatial discretization reproduces the analytic pressure-squared profile at grid nodes, up to nonlinear-solver and floating-point error.
+
+\section{Validation ladder}
+The implementation will be accepted incrementally using the following tests.
+\begin{enumerate}
+\item \textbf{Analytic steady residual.} Initialize Eq.~\eqref{eq:p2} and uniform $\mdot_0$; the assembled residual should be at roundoff/solver tolerance.
+\item \textbf{Steady-state preservation.} With constant boundaries, transient integration must preserve the initialized equilibrium for any tested $\theta$.
+\item \textbf{Global mass conservation.} The change in Eq.~\eqref{eq:linepack} must equal time-integrated boundary inflow minus outflow to the accuracy of the discrete time scheme.
+\item \textbf{Relaxation to analytic steady state.} A deliberately inconsistent initial state must approach Eq.~\eqref{eq:p2} under steady boundary conditions.
+\item \textbf{Temporal refinement.} Transient quantities of interest must converge as $\Delta t$ is refined.
+\item \textbf{Spatial refinement.} Transient quantities of interest must converge as $\Delta x$ is refined.
+\item \textbf{Theta study.} Characterize at least $\theta=0.50,0.55,0.60,0.65,0.70,0.80,1.00$ against a refined reference calculation.
+\item \textbf{Boundary-ramp transient.} From an exact equilibrium, smoothly change downstream demand over a ramp time $\tau$ and verify pressure propagation, linepack change, and convergence to the new equilibrium.
+\end{enumerate}
+A natural later TDAR input vector for the boundary-ramp experiment is
+\begin{equation}
+\bm\xi=(\Delta\mdot,\tau,\ldots).
+\end{equation}
+
+\section{Modular software decomposition}
+The intended conceptual decomposition is
+\begin{center}
+physics $\rightarrow$ residual assembly $\rightarrow$ time integration $\rightarrow$ nonlinear solve $\rightarrow$ linear solve.
+\end{center}
+Separate procedural interfaces are planned for EOS, friction, momentum formulation, spatial operators/interpolation, boundary conditions, time integration, nonlinear solution, and linear solution. The F77-style reference kernel will favor contiguous arrays, explicit loops, and small subroutines. The first C++ port will preserve the same algorithm and data layout as closely as practical before any higher-level C++ redesign.
+
+\section{Planned extensions}
+Planned extensions include the full momentum equation~\eqref{eq:fullmomentum}, Reynolds-dependent friction, real-gas EOS closure (including possible ThermoGPU coupling), automatic/implicit differentiation, TDAR surrogate construction, C++ numerical/performance parity, GPU execution, and later variational state-estimation experiments. These extensions are outside the V1 forward-solver acceptance boundary.
+
+\section{Public-source provenance}
+Kiuchi publicly documented a fully implicit finite-difference method for transient gas pipelines with Newton--Raphson nonlinear solution. Gyrya and Zlotnik publicly documented a second-order staggered finite-difference formulation in density, pressure, and mass flux with exact discrete mass conservation and general EOS support. Kranj\v{c}i\'{c} et al. publicly documented a transient pipeline finite-difference $\theta$-scheme based on one-dimensional isothermal conservation equations. The particular V1 combination and residual equations in this document are derived independently for this project.
+
+\begin{thebibliography}{9}
+\bibitem{kiuchi1994}
+T. Kiuchi, ``An implicit method for transient gas flows in pipe networks,''
+\emph{International Journal of Heat and Fluid Flow}, 15(5), 378--383, 1994.
+DOI: 10.1016/0142-727X(94)90051-5.
+
+\bibitem{gyrya2019}
+V. Gyrya and A. Zlotnik, ``An explicit staggered-grid method for numerical simulation of large-scale natural gas pipeline networks,''
+\emph{Applied Mathematical Modelling}, 65, 34--51, 2019.
+DOI: 10.1016/j.apm.2018.07.051.
+
+\bibitem{kranjcic2024}
+``Gas composition tracking feasibility using transient finite difference theta-scheme model for binary gas mixtures,''
+\emph{International Journal of Hydrogen Energy}, 49, 1319--1331, 2024.
+DOI: 10.1016/j.ijhydene.2023.11.031.
+\end{thebibliography}
+\end{document}
