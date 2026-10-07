@@ -10,3 +10,6 @@
 
 # Local repository repair backup
 .git-repair-backup/
+
+# Local build directory
+/build/
