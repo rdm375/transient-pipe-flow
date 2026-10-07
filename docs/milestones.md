@@ -40,12 +40,12 @@
 
 ### M3 — Newton nonlinear solve
 
-- [ ] Implement linear solve for the reference Jacobian.
-- [ ] Implement Newton iteration.
-- [ ] Implement residual-based convergence criteria.
-- [ ] Implement damped Newton/backtracking.
-- [ ] Verify recovery of analytic steady state from perturbed guesses.
-- [ ] Verify failure reporting for nonconvergent cases.
+- [x] Implement linear solve for the reference Jacobian.
+- [x] Implement Newton iteration.
+- [x] Implement residual-based convergence criteria.
+- [x] Implement damped Newton/backtracking.
+- [x] Verify recovery of analytic steady state from perturbed guesses.
+- [x] Verify failure reporting for nonconvergent cases.
 
 ### M4 — Single time step
 
