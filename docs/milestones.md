@@ -49,11 +49,11 @@
 
 ### M4 — Single time step
 
-- [ ] Implement one theta-method transient step.
-- [ ] Preserve an exact steady state for one step.
-- [ ] Verify per-step discrete global mass balance.
-- [ ] Verify boundary histories at t^n and t^(n+1).
-- [ ] Verify inlet boundary flow diagnostic.
+- [x] Implement one theta-method transient step.
+- [x] Preserve an exact steady state for one step.
+- [x] Verify per-step discrete global mass balance.
+- [x] Verify boundary histories at t^n and t^(n+1).
+- [x] Verify inlet boundary flow diagnostic.
 
 ### M5 — Transient integration
 
