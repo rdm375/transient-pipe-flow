@@ -77,8 +77,8 @@
 - [ ] Separate friction interface.
 - [ ] Separate momentum-model interface.
 - [ ] Separate boundary-condition interface.
-- [ ] Add Reynolds-dependent friction.
-- [ ] Add real-gas EOS closure.
+- [x] Add and verify Swamee-Jain friction model.
+- [ ] Add Peng-Robinson real-gas EOS closure.
 - [ ] Add full momentum equation with convective acceleration.
 
 ## V2 — C++ parity implementation
@@ -110,3 +110,103 @@
 - [ ] Adjoint sensitivities for many-parameter problems.
 - [ ] Variational/adjoint state estimation.
 - [ ] Extension from a single pipe to network problems.
+
+## Model configuration
+
+### Default engineering models
+
+The default physical configuration is:
+
+- **Compressibility:** Peng-Robinson equation of state.
+- **Friction:** Swamee-Jain Darcy friction factor.
+
+The numerical solver shall access thermodynamic properties through an
+EOS interface providing, at minimum,
+
+\[
+\rho(p,T,\mathbf{z})
+\]
+
+and
+
+\[
+\left(\frac{\partial \rho}{\partial p}\right)_{T,\mathbf{z}}.
+\]
+
+The pipe discretization shall not depend directly on the internal form
+of the EOS.
+
+For the Swamee-Jain model,
+
+\[
+Re = \frac{|\dot m|D}{A\mu},
+\]
+
+and
+
+\[
+f_D =
+\frac{0.25}
+{\left[
+\log_{10}\left(
+\frac{\epsilon}{3.7D}
++\frac{5.74}{Re^{0.9}}
+\right)
+\right]^2}.
+\]
+
+Swamee-Jain is the default engineering friction model. Its turbulent
+domain of applicability shall be enforced explicitly. Laminar and
+transition-flow behavior will be specified separately rather than
+silently extrapolating the turbulent correlation.
+
+### Validation models
+
+The following simplified models are retained permanently as validation
+oracles:
+
+- constant compressibility factor \(Z\);
+- constant Darcy friction factor \(f_D\).
+
+For constant \(Z\),
+
+\[
+\rho = \frac{p}{Z R_s T},
+\qquad
+\frac{\partial \rho}{\partial p}
+= \frac{1}{Z R_s T}.
+\]
+
+The combination of constant \(Z\) and constant \(f_D\) preserves the
+analytic steady-state solution
+
+\[
+p^2(x)
+=
+p_{\rm in}^2
+-
+\frac{f_D Z R_s T}{D A^2}\dot m^2 x,
+\]
+
+and therefore remains the primary analytic regression case even after
+the default engineering models become more sophisticated.
+
+### Planned EOS implementations
+
+- [x] Constant-Z validation EOS.
+- [ ] Ideal-gas debugging EOS.
+- [ ] Peng-Robinson engineering EOS.
+- [ ] EOS pressure derivative verification.
+- [ ] ThermoGPU/Peng-Robinson integration.
+
+### Planned friction implementations
+
+- [x] Constant-\(f_D\) validation model.
+- [x] Swamee-Jain engineering model.
+- [x] Independent Swamee-Jain reference-value tests.
+- [x] Analytic \(df_D/d\dot m\).
+- [x] Finite-difference verification of \(df_D/d\dot m\).
+- [x] Analytic friction-source Jacobian.
+- [x] Finite-difference verification of friction-source Jacobian.
+- [ ] Explicit laminar-flow model.
+- [ ] Explicit transition-flow policy.
