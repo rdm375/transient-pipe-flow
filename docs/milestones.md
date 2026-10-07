@@ -71,7 +71,59 @@
 - [x] Characterize numerical damping and transient accuracy.
 - [x] Establish reference cases and tolerances.
 
-### M7 — Modular physical models
+### M7a — Transient disturbance characterization
+
+- [x] Implement downstream demand step, rectangular pulse, and smooth ramp cases.
+- [x] Compare seven theta values against a fine-timestep reference.
+- [x] Export pressure, inlet-flow, and linepack histories as CSV.
+- [x] Exercise M7a characterization and M1–M6 checks on Dell 7710.
+- [ ] Freeze and commit M7a (tested working tree; commit not yet confirmed).
+
+### M7b — Numerical damping and wave-response characterization
+
+- [ ] Quantify pressure and flow overshoot, undershoot, and extrema timing.
+- [ ] Identify oscillation amplitude, decay, and potential nonphysical ringing.
+- [ ] Derive linearized reduced-model wave speed and amplification behavior.
+- [ ] Compare theoretical damping/dispersion with measured nonlinear responses.
+- [ ] Measure disturbance arrival times, phase lag, and amplitude attenuation.
+- [ ] Repeat at refined time and space resolutions; distinguish reference error.
+- [ ] Investigate large timesteps, solver failures, and domain-of-validity limits.
+- [ ] Record assumptions and limits of each diagnostic.
+
+### M8 — Numerical assurance framework
+
+- [ ] Define versioned, solver-independent evidence schema and units.
+- [ ] Export per-step conservation residual and cumulative mass-balance defect.
+- [ ] Export nonlinear residual histories, iteration counts, line-search factors,
+      convergence reasons, and failure states.
+- [ ] Define independent time/space refinement studies and error estimates.
+- [ ] Check positivity and EOS/friction correlation applicability domains.
+- [ ] Attach configuration, source revision, numerical methods, compiler,
+      tolerances, and reference provenance to each run.
+- [ ] Classify each finding as proven, verified, estimated, or unassessed.
+- [ ] Explicitly distinguish numerical assurance from physical validation.
+- [ ] Fail closed on missing evidence; never collapse warnings into PASS.
+- [ ] Validate evidence records and test deliberate failure cases.
+
+### M9 — Explainable simulation reports
+
+- [ ] Produce Markdown report and machine-readable findings from evidence.
+- [ ] Plot physical histories alongside conservation and solver diagnostics.
+- [ ] Explain timestep, theta, grid, and boundary-condition effects.
+- [ ] Trace every numerical claim to a definition, dataset, and method.
+- [ ] State error-estimate assumptions and limitations; do not claim bounds
+      unless mathematically established.
+- [ ] Provide examples of trustworthy, qualified, and failed calculations.
+
+### M10 — Interactive numerical laboratory
+
+- [ ] Compare synchronized physical and numerical time histories.
+- [ ] Explore timestep, grid resolution, and theta interactively.
+- [ ] Show linearized amplification predictions beside measured responses.
+- [ ] Make explanations and evidence accessible without modifying the kernel.
+- [ ] Support reproducible export of configurations and results.
+
+### M11 — Modular physical models (original M7 scope)
 
 - [ ] Separate EOS interface.
 - [ ] Separate friction interface.
@@ -80,36 +132,69 @@
 - [x] Add and verify Swamee-Jain friction model.
 - [ ] Add Peng-Robinson real-gas EOS closure.
 - [ ] Add full momentum equation with convective acceleration.
+- [ ] Enforce turbulent friction applicability and specify laminar/transition.
+- [ ] Preserve constant-Z/constant-friction analytic validation oracles.
+- [ ] Extend assurance evidence to every new closure.
 
-## V2 — C++ parity implementation
+### M12 — C++ parity and performance
 
-- [ ] Reproduce F77 numerical algorithm in straightforward C++.
+- [ ] Reproduce the validated F77 algorithm in straightforward C++.
 - [ ] Match state ordering and arithmetic where practical.
-- [ ] Establish physical parity.
-- [ ] Establish numerical parity.
-- [ ] Establish compiler/optimization parity.
-- [ ] Benchmark F77 versus C++.
-- [ ] Investigate vectorization, aliasing, layout, and compiler effects.
+- [ ] Establish physical, numerical, and optimization-level parity.
+- [ ] Benchmark F77 versus C++; investigate layout, aliasing, vectorization.
+- [ ] Ensure both implementations emit compatible assurance evidence.
 
-## V3 — Accelerator and surrogate work
+### M13 — Accelerator and surrogate research
 
-- [ ] Identify GPU-suitable kernels.
-- [ ] Implement accelerator path without changing reference mathematics.
+- [ ] Identify GPU-suitable kernels without changing reference mathematics.
+- [ ] Implement and validate an accelerator path against the reference.
 - [ ] Benchmark CPU/GPU crossover behavior.
-- [ ] Define transient quantities of interest q(xi).
-- [ ] Compute parameter sensitivities.
-- [ ] Apply TDAR to the transient-pipe parameter space.
+- [ ] Define transient quantities of interest q(xi) and sensitivities.
+- [ ] Apply independently validated TDAR to pipe parameter space.
 - [ ] Investigate higher-dimensional TDAR behavior.
+- [ ] Preserve numerical assurance and provenance across backends.
 
 ## Future research
 
 - [ ] Alternative spatial discretizations, including linear Galerkin.
-- [ ] Alternative time integrators.
+- [ ] Alternative time integrators and adaptive timestep control.
 - [ ] ThermoGPU EOS integration.
 - [ ] Implicit differentiation through converged residual equations.
 - [ ] Adjoint sensitivities for many-parameter problems.
 - [ ] Variational/adjoint state estimation.
 - [ ] Extension from a single pipe to network problems.
+
+## Explainability and numerical assurance policy
+
+Every simulation should return its result **and** sufficient evidence to
+assess that result. Evidence generation is independent of presentation.
+The numerical kernel is not responsible for prose or visualizations.
+
+- **Proven:** follows from stated mathematics (e.g. discrete mass identity).
+- **Verified:** demonstrated by tests for specified cases and tolerances.
+- **Estimated:** numerical uncertainty inferred under stated assumptions.
+- **Physically validated:** compared with independent physical measurements.
+- **Unassessed:** evidence missing or outside a diagnostic's valid domain.
+
+No assurance label shall imply physical validation. Every diagnostic shall
+identify its mathematical definition, units, scope, threshold, evidence,
+and failure behavior. Missing or invalid evidence must remain visible.
+
+Proposed versioned run layout (subject to schema design in M8):
+
+```text
+simulation/
+  results/       pressure.csv, mass_flow.csv, linepack.csv
+  diagnostics/   conservation.csv, nonlinear_solver.csv,
+                 discretization.csv, physical_validity.csv
+  assurance/     findings.json, summary.md
+  provenance/    configuration.json, numerical_methods.json
+```
+
+The M6 convergence study verifies temporal/spatial accuracy for selected
+smooth cases. M7a measures errors under step, pulse, and smooth forcing;
+it does **not** by itself establish damping, phase accuracy, or wave speed.
+M7b explicitly addresses those remaining questions.
 
 ## Model configuration
 
