@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: all check steady-residual friction-check docs clean
+.PHONY: all check steady-residual friction-check jacobian-check docs clean
 
 all: steady-residual
 
@@ -26,9 +26,20 @@ friction-check: $(BUILD_DIR)
 	    tests/fortran77/friction_check.f \
 	    -o $(BUILD_DIR)/friction_check
 
-check: steady-residual friction-check
+
+jacobian-check: $(BUILD_DIR)
+	$(FC) $(FFLAGS_CHECK) \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    tests/fortran77/jacobian_check.f \
+	    -o $(BUILD_DIR)/jacobian_check
+
+check: steady-residual friction-check jacobian-check
 	./$(BUILD_DIR)/steady_residual
 	./$(BUILD_DIR)/friction_check
+	./$(BUILD_DIR)/jacobian_check
 
 docs:
 	cd docs && pdflatex -halt-on-error model.tex

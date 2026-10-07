@@ -28,15 +28,15 @@
 
 ### M2 — Residual and Jacobian kernels
 
-- [ ] Refactor residual evaluation into reusable F77-style routines.
-- [ ] Define the complete transient unknown-vector ordering.
-- [ ] Implement complete theta-method transient residual.
-- [ ] Derive analytic Jacobian entries.
-- [ ] Implement analytic Jacobian assembly.
-- [ ] Implement independent finite-difference Jacobian.
-- [ ] Compare analytic and finite-difference Jacobians.
-- [ ] Test Jacobian at non-equilibrium states.
-- [ ] Verify expected Jacobian sparsity/locality.
+- [x] Refactor residual evaluation into reusable F77-style routines.
+- [x] Define the complete transient unknown-vector ordering.
+- [x] Implement complete theta-method transient residual.
+- [x] Derive analytic Jacobian entries.
+- [x] Implement analytic Jacobian assembly.
+- [x] Implement independent finite-difference Jacobian.
+- [x] Compare analytic and finite-difference Jacobians.
+- [x] Test Jacobian at non-equilibrium states.
+- [x] Verify expected Jacobian sparsity/locality.
 
 ### M3 — Newton nonlinear solve
 
