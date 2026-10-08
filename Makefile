@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
+.PHONY: m9d2-temporal-check all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
 
 all: steady-residual
 
@@ -171,7 +171,21 @@ m9c2b-failure-check: $(BUILD_DIR)
 	    tests/fortran77/m9c2b_failure_contract_check.f \
 	    -o $(BUILD_DIR)/m9c2b_failure_contract_check
 
-check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check
+m9d2-temporal-check: $(BUILD_DIR)
+	$(FC) $(FFLAGS_CHECK) \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/input_validation.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    src/fortran77/transient_integrate.f \
+	    tests/fortran77/m9d2_temporal.f90 \
+	    -o $(BUILD_DIR)/m9d2_temporal
+
+check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check m9d2-temporal-check
 	./$(BUILD_DIR)/steady_residual
 	./$(BUILD_DIR)/friction_check
 	./$(BUILD_DIR)/jacobian_check
@@ -186,6 +200,7 @@ check: steady-residual friction-check jacobian-check newton-check timestep-check
 	./$(BUILD_DIR)/m9c2a_failure_contract_check
 	./$(BUILD_DIR)/m9c2b_failure_contract_check
 	./$(BUILD_DIR)/m9c3_partial_failure_check
+	./$(BUILD_DIR)/m9d2_temporal
 
 characterize: $(BUILD_DIR)
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
