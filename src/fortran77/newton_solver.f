@@ -13,19 +13,23 @@ C=======================================================================
       DOUBLE PRECISION MINO,MOUTO,MOUTN,PINN,DX,DT,THETA
       DOUBLE PRECISION D,A,T,Z,RS,MU,EPS,RTOL,STOL
       DOUBLE PRECISION R(202),RT(202),JAC(LDJ,202),AC(LDJ,202)
-      DOUBLE PRECISION RHS(202),DU(202),UT(202)
+      DOUBLE PRECISION RHS(202),DU(202),UT(202),WORK(202)
       SAVE JAC,AC
       DOUBLE PRECISION RNORM,RNEW,SNORM,USCALE,LAMBDA
 
       NITER = 0
       NU = 2*N + 2
-      IF (NU .GT. 202) THEN
+      IF (N.LT.2.OR.NU.GT.202) THEN
          INFO = 3
          NITER = 0
          RETURN
       ENDIF
 
-      CALL ASSEMBLE_RESIDUAL(N,U,PO,MO,MINO,MOUTO,MOUTN,PINN,
+      DO 5 I=1,NU
+         WORK(I) = U(I)
+    5 CONTINUE
+
+      CALL ASSEMBLE_RESIDUAL(N,WORK,PO,MO,MINO,MOUTO,MOUTN,PINN,
      &     DX,DT,THETA,D,A,T,Z,RS,MU,EPS,R)
 
       DO 100 ITER=0,MAXIT-1
@@ -36,10 +40,10 @@ C=======================================================================
          IF (RNORM .LE. RTOL) THEN
             NITER = ITER
             INFO = 0
-            RETURN
+            GOTO 200
          ENDIF
 
-         CALL ASSEMBLE_JACOBIAN(N,U,DX,DT,THETA,D,A,T,Z,RS,
+         CALL ASSEMBLE_JACOBIAN(N,WORK,DX,DT,THETA,D,A,T,Z,RS,
      &        MU,EPS,JAC,LDJ)
          DO 30 J=1,NU
             DO 20 I=1,NU
@@ -60,13 +64,13 @@ C=======================================================================
          USCALE = 1.0D0
          DO 50 I=1,NU
             SNORM = DMAX1(SNORM,DABS(DU(I)))
-            USCALE = DMAX1(USCALE,DABS(U(I)))
+            USCALE = DMAX1(USCALE,DABS(WORK(I)))
    50    CONTINUE
 
          LAMBDA = 1.0D0
          DO 70 LS=1,20
             DO 60 I=1,NU
-               UT(I) = U(I) + LAMBDA*DU(I)
+               UT(I) = WORK(I) + LAMBDA*DU(I)
    60       CONTINUE
             CALL ASSEMBLE_RESIDUAL(N,UT,PO,MO,MINO,MOUTO,MOUTN,
      &           PINN,DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RT)
@@ -87,18 +91,24 @@ C=======================================================================
      &           LAMBDA
          ENDIF
          DO 90 I=1,NU
-            U(I) = UT(I)
+            WORK(I) = UT(I)
             R(I) = RT(I)
    90    CONTINUE
          IF (LAMBDA*SNORM .LE. STOL*USCALE .AND.
      &       RNEW .LE. 10.0D0*RTOL) THEN
             NITER = ITER + 1
             INFO = 0
-            RETURN
+            GOTO 200
          ENDIF
   100 CONTINUE
 
       NITER = MAXIT
       INFO = 1
+      RETURN
+
+  200 CONTINUE
+      DO 210 I=1,NU
+         U(I) = WORK(I)
+  210 CONTINUE
       RETURN
       END

@@ -84,6 +84,26 @@ C     Exact steady-state preservation for several dt/theta pairs.
          ENDIF
   100 CONTINUE
 
+C     A failed step must not overwrite its output buffer.
+      DO 101 I=1,NU
+         U(I)=-12345D0
+  101 CONTINUE
+      MOUTN=1.05D0*MDOT
+      CALL TRANSIENT_STEP(N,PO,MO,MINO,MOUTO,MOUTN,PINN,
+     &     DX,60D0,0.65D0,D,A,T,Z,RS,MU,EPS,RTOL,STOL,0,0,
+     &     U,INFO,NITER)
+      IF (INFO.NE.1.OR.NITER.NE.0) THEN
+         WRITE(*,*) 'FAIL: timestep failure status'
+         STOP 1
+      ENDIF
+      DO 102 I=1,NU
+         IF (TRANSFER(U(I),0_8).NE.
+     &       TRANSFER(-12345D0,0_8)) THEN
+            WRITE(*,*) 'FAIL: timestep changed output on failure'
+            STOP 1
+         ENDIF
+  102 CONTINUE
+
 C     One genuine transient step: increase downstream demand by 5%.
 C     The inlet pressure is held fixed.  The outlet pressure and total
 C     linepack should fall, while the solved inlet flow is diagnostic.

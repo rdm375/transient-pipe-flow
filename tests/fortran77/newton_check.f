@@ -2,7 +2,7 @@
       IMPLICIT NONE
       INTEGER N,NU,I,ICASE,INFO,NITER
       PARAMETER (N=4,NU=10)
-      DOUBLE PRECISION U(NU),USTAR(NU),PO(0:N),MO(0:N-1)
+      DOUBLE PRECISION U(NU),USAVE(NU),USTAR(NU),PO(0:N),MO(0:N-1)
       DOUBLE PRECISION PI,D,A,T,Z,RS,MU,EPS,DX,DT,THETA
       DOUBLE PRECISION MINO,MOUTO,MOUTN,PINN,MDOT,RE,FD,COEF,X
       DOUBLE PRECISION PERT,MAXERR,PSCALE,MSCALE,ERR
@@ -98,13 +98,24 @@ C     from a perturbed state.
          U(I) = USTAR(I)
    60 CONTINUE
       U(1) = 1.01D0*U(1)
+      DO 61 I=1,NU
+         USAVE(I)=U(I)
+   61 CONTINUE
       CALL NEWTON_SOLVE(N,U,PO,MO,MINO,MOUTO,MOUTN,PINN,
      &     DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,0,0,
      &     INFO,NITER)
-      IF (INFO .NE. 1) THEN
+      IF (INFO .NE. 1.OR.NITER.NE.0) THEN
          WRITE(*,*) 'FAIL: Newton failure reporting'
          STOP 1
       ENDIF
+
+      DO 62 I=1,NU
+         IF (TRANSFER(U(I),0_8).NE.
+     &       TRANSFER(USAVE(I),0_8)) THEN
+            WRITE(*,*) 'FAIL: Newton modified state on failure'
+            STOP 1
+         ENDIF
+   62 CONTINUE
 
       WRITE(*,*) 'PASS: damped Newton recovery and failure paths'
       END
