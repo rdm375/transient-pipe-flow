@@ -213,7 +213,16 @@ m9d4-inventory-check: $(BUILD_DIR)
 	    tests/fortran77/m9d4_inventory_regression.f90 \
 	    -o $(BUILD_DIR)/m9d4_inventory_regression
 
-check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check m9d2-temporal-check m9d3-spatial-check m9d4-inventory-check
+m9d5-halfcell-check: $(BUILD_DIR)
+	$(FC) $(FFLAGS_CHECK) \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    tests/fortran77/m9d5_halfcell_regression.f90 \
+	    -o $(BUILD_DIR)/m9d5_halfcell_regression
+
+check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check m9d2-temporal-check m9d3-spatial-check m9d4-inventory-check m9d5-halfcell-check
 	./$(BUILD_DIR)/steady_residual
 	./$(BUILD_DIR)/friction_check
 	./$(BUILD_DIR)/jacobian_check
@@ -231,6 +240,7 @@ check: steady-residual friction-check jacobian-check newton-check timestep-check
 	./$(BUILD_DIR)/m9d2_temporal
 	./$(BUILD_DIR)/m9d3_spatial_regression
 	./$(BUILD_DIR)/m9d4_inventory_regression
+	./$(BUILD_DIR)/m9d5_halfcell_regression
 
 characterize: $(BUILD_DIR)
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
