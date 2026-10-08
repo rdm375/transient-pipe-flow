@@ -1,6 +1,6 @@
 # Transient Pipe Solver — Interface Contract
 
-Status: M9E.1 draft
+Status: M9E.3–4 checked-interface contract
 Scope: Existing Fortran solver interfaces
 Numerical formulation: Unchanged
 
@@ -269,3 +269,42 @@ Interface hardening must not silently change:
 
 Any necessary numerical change requires an independent
 regression test and explicit review.
+
+## 15. Checked-interface failure progress (M9E.3)
+
+The `pipe_solver_api` module provides `pipe_step_checked`,
+`pipe_integrate_checked`, `pipe_adaptive_checked`, and
+`pipe_adaptive_schedule_checked`. Its assumed-shape arrays are
+capacity-checked before dispatch to the legacy numerical kernels.
+
+On wrapper-level capacity rejection (`INFO=3`), the physical state
+and history arrays are unchanged. Adaptive checked wrappers also
+return zero `NACC`, `NREJ`, `NTOTAL`, and `NNEWTON`.
+
+After initialized adaptive execution, the physical state is the
+last accepted state, even if `INFO` indicates a subsequent failure.
+For the legacy arrays with lower bound zero, valid history records
+are `0:NACC`. For ordinary 1-based arrays passed to the checked
+module, these are elements `1:NACC+1`. Other records must not be
+interpreted as results. `NTOTAL=NACC+NREJ` counts attempted steps;
+`NNEWTON` includes Newton work from unsuccessful attempts.
+
+Status 7 indicates that history capacity was exhausted after
+accepted records were committed. Status 6 indicates that the
+adaptive rejection limit was exceeded; an unsuccessful attempt
+does not commit the physical state. Early numerical-input
+validation inside the legacy kernel may leave histories and
+diagnostic outputs undefined; the wrapper's zero counters do not
+constitute a guarantee about the kernel's early-failure outputs.
+
+Fixed-step integration has no accepted-step count in its existing
+interface. Do not infer a valid partial-history extent from `INFO`
+alone. Adding such a count requires a separate API revision.
+
+## 16. Build isolation (M9E.4)
+
+Debug regression binaries use shared checked-build object files.
+Optimized characterization programs remain separate compilation
+paths and must not link debug objects. The M9C.3 failure-injection
+regression substitutes a test `TRANSIENT_STEP` and must never link
+the production timestep object.
