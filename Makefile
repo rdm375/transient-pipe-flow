@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check characterize dynamics docs clean
+.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
 
 all: steady-residual
 
@@ -111,6 +111,23 @@ dynamics: $(BUILD_DIR)
 	    -o $(BUILD_DIR)/dynamic_characterization
 	./$(BUILD_DIR)/dynamic_characterization
 
+waves: $(BUILD_DIR)
+	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    src/fortran77/transient_integrate.f \
+	    tests/fortran77/wave_characterization.f \
+	    -o $(BUILD_DIR)/wave_characterization
+	./$(BUILD_DIR)/wave_characterization
+
+wave-analysis: waves
+	python3 benchmarks/analyze_m7b.py
+
 docs:
 	cd docs && pdflatex -halt-on-error model.tex
 	cd docs && pdflatex -halt-on-error model.tex
@@ -121,3 +138,29 @@ clean:
 	rm -f docs/model.aux docs/model.log docs/model.out \
 	      docs/model.toc docs/model.fls docs/model.fdb_latexmk \
 	      docs/model.synctex.gz
+
+modal-analysis: wave-analysis
+	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_jacobian.f \
+	    tests/fortran77/modal_jacobian.f \
+	    -o $(BUILD_DIR)/modal_jacobian
+	./$(BUILD_DIR)/modal_jacobian
+	python3 benchmarks/modal_m7b.py
+
+# Small-perturbation verification uses the production nonlinear stepper.
+small-verify: modal-analysis
+	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    src/fortran77/transient_integrate.f \
+	    tests/fortran77/small_perturbation.f \
+	    -o $(BUILD_DIR)/small_perturbation
+	./$(BUILD_DIR)/small_perturbation
+	python3 benchmarks/verify_small_m7b.py

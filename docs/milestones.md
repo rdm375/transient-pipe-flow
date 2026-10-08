@@ -77,18 +77,18 @@
 - [x] Compare seven theta values against a fine-timestep reference.
 - [x] Export pressure, inlet-flow, and linepack histories as CSV.
 - [x] Exercise M7a characterization and M1–M6 checks on Dell 7710.
-- [ ] Freeze and commit M7a (tested working tree; commit not yet confirmed).
+- [x] Freeze and commit M7a (`192fe21`).
 
 ### M7b — Numerical damping and wave-response characterization
 
-- [ ] Quantify pressure and flow overshoot, undershoot, and extrema timing.
-- [ ] Identify oscillation amplitude, decay, and potential nonphysical ringing.
-- [ ] Derive linearized reduced-model wave speed and amplification behavior.
-- [ ] Compare theoretical damping/dispersion with measured nonlinear responses.
-- [ ] Measure disturbance arrival times, phase lag, and amplitude attenuation.
-- [ ] Repeat at refined time and space resolutions; distinguish reference error.
-- [ ] Investigate large timesteps, solver failures, and domain-of-validity limits.
-- [ ] Record assumptions and limits of each diagnostic.
+- [x] Export sampled pressure extrema and timing; flow extrema remain.
+- [x] Add preliminary pressure slope-reversal heuristic; oscillation decay and classification remain.
+- [x] Derive exact theta amplification of the linearized constrained semidiscrete operator from the production Jacobian; continuum wave-speed derivation remains.
+- [x] Tabulate predicted discrete modal damping and aliased frequency alongside the nonlinear sensor evidence; direct modal-excitation agreement remains to be tested.
+- [x] Export four spatial pressure sensors and threshold-crossing arrivals; phase and attenuation interpretation remain.
+- [x] Generate multi-resolution sensor histories (N=20,40; dt=15,60,120 s); rigorous reference-error separation remains.
+- [x] Exercise dt=120 s and check linear modal stability; nonlinear solver failure envelopes and larger-step limits remain open.
+- [x] Record limitations and diagnostic definitions in generated M7b report.
 
 ### M8 — Numerical assurance framework
 
