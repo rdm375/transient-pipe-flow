@@ -9,6 +9,7 @@ module pipe_solver_api
   public :: pipe_step_checked
   public :: pipe_integrate_checked
   public :: pipe_adaptive_checked
+  public :: pipe_adaptive_schedule_checked
 
 contains
 
@@ -152,5 +153,77 @@ contains
          nacc, nrej, ntotal, nnewton, info)
 
   end subroutine pipe_adaptive_checked
+
+
+  subroutine pipe_adaptive_schedule_checked(n, po, mo, mino, &
+       nsched, tsched, psched, qsched, duration, theta, dx, &
+       d, a, temp, z, rs, mu, eps, rtol, stol, maxit, &
+       dtinit, dtmin, dtmax, etol, cflmax, bfrac, &
+       maxrej, maxrec, atol, rtoly, &
+       time, dtrec, hmin, hout, hpout, hline, &
+       hnit, heta, hbal, hcfl, &
+       nacc, nrej, ntotal, nnewton, info)
+
+    integer, intent(in) :: n, nsched, maxit, maxrej, maxrec
+
+    real(real64), intent(inout) :: po(:), mo(:), mino
+    real(real64), intent(in) :: tsched(:), psched(:), qsched(:)
+    real(real64), intent(in) :: duration, theta, dx
+    real(real64), intent(in) :: d, a, temp, z, rs, mu, eps
+    real(real64), intent(in) :: rtol, stol
+    real(real64), intent(in) :: dtinit, dtmin, dtmax
+    real(real64), intent(in) :: etol, cflmax, bfrac
+    real(real64), intent(in) :: atol(:), rtoly(:)
+
+    real(real64), intent(inout) :: time(:), dtrec(:)
+    real(real64), intent(inout) :: hmin(:), hout(:)
+    real(real64), intent(inout) :: hpout(:), hline(:)
+    real(real64), intent(inout) :: heta(:), hbal(:), hcfl(:)
+    integer, intent(inout) :: hnit(:)
+
+    integer, intent(out) :: nacc, nrej, ntotal, nnewton, info
+
+    info = PIPE_INVALID_ARGUMENT
+    nacc = 0
+    nrej = 0
+    ntotal = 0
+    nnewton = 0
+
+    if (n < 2 .or. n > 100) return
+    if (nsched < 2) return
+    if (maxrec < 1) return
+
+    if (size(po) < n+1) return
+    if (size(mo) < n) return
+
+    if (size(tsched) < nsched) return
+    if (size(psched) < nsched) return
+    if (size(qsched) < nsched) return
+
+    if (size(atol) < 4) return
+    if (size(rtoly) < 4) return
+
+    ! Subtraction avoids overflow from MAXREC+1.
+    if (size(time)-1 < maxrec) return
+    if (size(dtrec)-1 < maxrec) return
+    if (size(hmin)-1 < maxrec) return
+    if (size(hout)-1 < maxrec) return
+    if (size(hpout)-1 < maxrec) return
+    if (size(hline)-1 < maxrec) return
+    if (size(hnit)-1 < maxrec) return
+    if (size(heta)-1 < maxrec) return
+    if (size(hbal)-1 < maxrec) return
+    if (size(hcfl)-1 < maxrec) return
+
+    call integrate_transient_adaptive_schedule(n, po, mo, mino, &
+         nsched, tsched, psched, qsched, duration, theta, &
+         dx, d, a, temp, z, rs, mu, eps, rtol, stol, &
+         maxit, dtinit, dtmin, dtmax, etol, cflmax, &
+         bfrac, maxrej, maxrec, atol, rtoly, &
+         time, dtrec, hmin, hout, hpout, hline, &
+         hnit, heta, hbal, hcfl, &
+         nacc, nrej, ntotal, nnewton, info)
+
+  end subroutine pipe_adaptive_schedule_checked
 
 end module pipe_solver_api
