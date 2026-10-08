@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: m9d2-temporal-check all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
+.PHONY: m9d2-temporal-check all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean m9e2-interface-check
 
 all: steady-residual
 
@@ -222,7 +222,25 @@ m9d5-halfcell-check: $(BUILD_DIR)
 	    tests/fortran77/m9d5_halfcell_regression.f90 \
 	    -o $(BUILD_DIR)/m9d5_halfcell_regression
 
-check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check m9d2-temporal-check m9d3-spatial-check m9d4-inventory-check m9d5-halfcell-check
+m9e2-interface-check: $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/interfaces
+	$(FC) $(FFLAGS_CHECK) -J $(BUILD_DIR)/interfaces \
+	    -c src/interfaces/pipe_solver_api.f90 \
+	    -o $(BUILD_DIR)/interfaces/pipe_solver_api.o
+	$(FC) $(FFLAGS_CHECK) -I $(BUILD_DIR)/interfaces \
+	    $(BUILD_DIR)/interfaces/pipe_solver_api.o \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/input_validation.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    tests/fortran77/m9e2_interface_check.f90 \
+	    -o $(BUILD_DIR)/m9e2_interface_check
+
+check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check input-validation-check m9b3-negative-check m9c2a-failure-check m9c2b-failure-check m9c3-partial-failure-check m9d2-temporal-check m9d3-spatial-check m9d4-inventory-check m9d5-halfcell-check m9e2-interface-check
 	./$(BUILD_DIR)/steady_residual
 	./$(BUILD_DIR)/friction_check
 	./$(BUILD_DIR)/jacobian_check
@@ -241,6 +259,7 @@ check: steady-residual friction-check jacobian-check newton-check timestep-check
 	./$(BUILD_DIR)/m9d3_spatial_regression
 	./$(BUILD_DIR)/m9d4_inventory_regression
 	./$(BUILD_DIR)/m9d5_halfcell_regression
+	./$(BUILD_DIR)/m9e2_interface_check
 
 characterize: $(BUILD_DIR)
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
