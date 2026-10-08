@@ -74,12 +74,22 @@
          CUM=CUM+DTREC(K)*(THETA*(HMIN(K)-HOUT(K))+
      &       (1D0-THETA)*(HMIN(K-1)-HOUT(K-1)))
          CUMDEF=CUMDEF+HBAL(K)
+C     M9D.1: independently reconstruct local mass conservation.
+         IF (DABS(HLINE(K)-HLINE(K-1)-
+     &       DTREC(K)*(THETA*(HMIN(K)-HOUT(K))+
+     &       (1D0-THETA)*(HMIN(K-1)-HOUT(K-1))))
+     &       .GT.1D-7) STOP 91
+         IF (DABS(HBAL(K)).GT.1D-7) STOP 92
+         IF (DABS(TIME(K)-TIME(K-1)-DTREC(K))
+     &       .GT.1D-9) STOP 93
          IF (TIME(K-1).LT.600D0-1D-8.AND.
      &       TIME(K).GT.600D0+1D-8) STOP 6
    30 CONTINUE
       IF (DABS((HLINE(NACC)-HLINE(0))-CUM).GT.1D-5)
      & STOP 7
       IF (DABS(CUMDEF).GT.1D-5) STOP 8
+      IF (DABS(CUM).LT.100D0) STOP 94
+      PRINT *, 'M9D.1 STEP CONSERVATION PASS'
       IF (NTOTAL.NE.NACC+NREJ) STOP 9
       DO 40 K=1,NACC
          IF (TIME(K-1).LT.1800D0-1D-8.AND.
