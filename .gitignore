@@ -28,3 +28,6 @@ __pycache__/
 # Python cache
 __pycache__/
 *.py[cod]
+
+# M9 diagnostic and benchmark results
+/benchmarks/results-m9/
