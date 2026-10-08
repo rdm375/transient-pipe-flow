@@ -1,0 +1,181 @@
+C=======================================================================
+C  VARIABLE-STEP THETA INTEGRATION, NO STEP DOUBLING.
+C  INPUT STATE PO,MO,MINO AT TIME ZERO. OUTPUT ARRAYS 0:MAXREC.
+C  INFO: 0 SUCCESS, 3 BAD ARGUMENT, 5 HMIN, 6 REJECTION LIMIT,
+C        7 OUTPUT CAPACITY. LAST ACCEPTED STATE RETAINED ON ERROR.
+C  ETA IS A HISTORY/CURVATURE INDICATOR, NOT CERTIFIED ERROR.
+C=======================================================================
+      SUBROUTINE INTEGRATE_TRANSIENT_ADAPTIVE(N,PO,MO,MINO,
+     & PIN,MDOT0,MDOT1,TRAMP,DURATION,THETA,DX,D,A,T,Z,RS,
+     & MU,EPS,RTOL,STOL,MAXIT,DTINIT,DTMIN,DTMAX,ETOL,
+     & CFLMAX,BFRAC,MAXREJ,MAXREC,TIME,DTREC,HMIN,HOUT,
+     & HPOUT,HLINE,HNIT,HETA,HBAL,HCFL,NACC,NREJ,NTOTAL,
+     & NNEWTON,INFO)
+      IMPLICIT NONE
+      INTEGER N,MAXIT,MAXREJ,MAXREC,NACC,NREJ,NTOTAL
+      INTEGER NNEWTON,INFO,HNIT(0:*),I,K,NI,REJ,STARTUP
+      DOUBLE PRECISION PO(0:*),MO(0:*),MINO,PIN,MDOT0,MDOT1
+      DOUBLE PRECISION TRAMP,DURATION,THETA,DX,D,A,T,Z,RS,MU,EPS
+      DOUBLE PRECISION RTOL,STOL,DTINIT,DTMIN,DTMAX,ETOL
+      DOUBLE PRECISION CFLMAX,BFRAC,TIME(0:*),DTREC(0:*)
+      DOUBLE PRECISION HMIN(0:*),HOUT(0:*),HPOUT(0:*)
+      DOUBLE PRECISION HLINE(0:*),HETA(0:*),HBAL(0:*)
+      DOUBLE PRECISION HCFL(0:*),PN(0:100),MN(0:99)
+      DOUBLE PRECISION U(202),PREV(202),SLOPE(202)
+      DOUBLE PRECISION H,HPREV,TNOW,TNEXT,QOLD,QNEW,QPREV
+      DOUBLE PRECISION MASS0,MASS1,MASSOLD,ETA,VAL,SCALE,FAC
+      DOUBLE PRECISION CS,CF,DEMAND_RAMP,BOUND
+      IF (N.LT.2.OR.N.GT.100.OR.MAXREC.LT.1.OR.
+     & DURATION.LE.0D0.OR.DTMIN.LE.0D0.OR.DTMAX.LT.DTMIN
+     & .OR.DTINIT.LE.0D0.OR.ETOL.LE.0D0.OR.
+     & THETA.LT.0D0.OR.THETA.GT.1D0.OR.MAXREJ.LT.0)
+     & THEN
+         INFO=3
+         RETURN
+      ENDIF
+      CS=DSQRT(Z*RS*T)
+      CF=DABS(THETA-0.5D0)
+      TNOW=0D0
+      HPREV=0D0
+      STARTUP=1
+      QOLD=MINO-MDOT0
+      QPREV=QOLD
+      CALL LINEPACK_CZ(N,PO,DX,A,T,Z,RS,MASS0)
+      MASSOLD=MASS0
+      PREV(1)=PIN
+      PREV(2)=MINO
+      DO 10 I=0,N-1
+         PREV(2*I+3)=MO(I)
+         PREV(2*I+4)=PO(I+1)
+   10 CONTINUE
+      TIME(0)=0D0
+      DTREC(0)=0D0
+      HMIN(0)=MINO
+      HOUT(0)=MDOT0
+      HPOUT(0)=PO(N)
+      HLINE(0)=MASS0
+      HNIT(0)=0
+      HETA(0)=0D0
+      HBAL(0)=0D0
+      HCFL(0)=0D0
+      NACC=0
+      NREJ=0
+      NTOTAL=0
+      NNEWTON=0
+      H=DMIN1(DTINIT,DTMAX)
+  100 CONTINUE
+      IF (TNOW.GE.DURATION-1D-9) THEN
+         INFO=0
+         RETURN
+      ENDIF
+      IF (NACC.GE.MAXREC) THEN
+         INFO=7
+         RETURN
+      ENDIF
+      H=DMIN1(H,DTMAX,DURATION-TNOW)
+C     Known ramp kink is a hard event boundary.
+      IF (TRAMP.GT.0D0.AND.TNOW.LT.TRAMP-1D-9)
+     &   H=DMIN1(H,TRAMP-TNOW)
+C     Optional boundary forcing resolution cap.
+      IF (BFRAC.GT.0D0.AND.TRAMP.GT.0D0.AND.
+     &    TNOW.LT.TRAMP-1D-9) H=DMIN1(H,BFRAC*TRAMP)
+C     Optional acoustic ACCURACY cap (not implicit stability).
+      IF (CFLMAX.GT.0D0) H=DMIN1(H,CFLMAX*DX/CS)
+      REJ=0
+  200 CONTINUE
+      IF (H.LT.DTMIN*(1D0-1D-10)) THEN
+         INFO=5
+         RETURN
+      ENDIF
+      TNEXT=TNOW+H
+      BOUND=DEMAND_RAMP(TNEXT,MDOT0,MDOT1,TRAMP)
+      CALL TRANSIENT_STEP(N,PO,MO,MINO,HOUT(NACC),BOUND,
+     & PIN,DX,H,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,
+     & MAXIT,0,U,INFO,NI)
+      NTOTAL=NTOTAL+1
+      IF (INFO.NE.0) THEN
+         REJ=REJ+1
+         NREJ=NREJ+1
+         IF (REJ.GT.MAXREJ) THEN
+            INFO=6
+            RETURN
+         ENDIF
+         H=0.5D0*H
+         GOTO 200
+      ENDIF
+      NNEWTON=NNEWTON+NI
+      PN(0)=U(1)
+      DO 210 I=0,N-1
+         MN(I)=U(2*I+3)
+         PN(I+1)=U(2*I+4)
+  210 CONTINUE
+      CALL LINEPACK_CZ(N,PN,DX,A,T,Z,RS,MASS1)
+      QNEW=U(2)-BOUND
+      ETA=0D0
+      IF (STARTUP.EQ.0) THEN
+         DO 220 I=1,2*N+2
+            SCALE=100D0
+            IF (MOD(I,2).EQ.1) SCALE=8D6
+            VAL=DABS((U(I)-PREV(I))/H-SLOPE(I))
+            ETA=DMAX1(ETA,2D0*CF*H*H*VAL/
+     &                    ((H+HPREV)*SCALE))
+  220    CONTINUE
+         VAL=DABS((MASS1-MASS0)/H-
+     &             (MASS0-MASSOLD)/HPREV)
+         ETA=DMAX1(ETA,2D0*CF*H*H*VAL/
+     &                ((H+HPREV)*5000D0))
+         VAL=DABS((QNEW-QOLD)/H-(QOLD-QPREV)/HPREV)
+         ETA=DMAX1(ETA,2D0*CF*H*H*VAL/
+     &                ((H+HPREV)*5D0))
+         ETA=ETA/ETOL
+      ENDIF
+      IF (ETA.GT.1D0) THEN
+         REJ=REJ+1
+         NREJ=NREJ+1
+         IF (REJ.GT.MAXREJ) THEN
+            INFO=6
+            RETURN
+         ENDIF
+         FAC=DMAX1(0.2D0,DMIN1(0.8D0,0.9D0/DSQRT(ETA)))
+         H=H*FAC
+         GOTO 200
+      ENDIF
+      K=NACC+1
+      TIME(K)=TNEXT
+      DTREC(K)=H
+      HMIN(K)=U(2)
+      HOUT(K)=BOUND
+      HPOUT(K)=PN(N)
+      HLINE(K)=MASS1
+      HNIT(K)=NI
+      HETA(K)=ETA
+      HBAL(K)=MASS1-MASS0-H*(THETA*QNEW+
+     &              (1D0-THETA)*QOLD)
+      HCFL(K)=CS*H/DX
+      DO 230 I=1,2*N+2
+         SLOPE(I)=(U(I)-PREV(I))/H
+         PREV(I)=U(I)
+  230 CONTINUE
+      DO 240 I=0,N
+         PO(I)=PN(I)
+  240 CONTINUE
+      DO 250 I=0,N-1
+         MO(I)=MN(I)
+  250 CONTINUE
+      MINO=U(2)
+      MASSOLD=MASS0
+      MASS0=MASS1
+      QPREV=QOLD
+      QOLD=QNEW
+      HPREV=H
+      TNOW=TNEXT
+      STARTUP=0
+      NACC=K
+      IF (ETA.GT.1D-12) THEN
+         FAC=DMAX1(0.5D0,DMIN1(2D0,0.9D0/DSQRT(ETA)))
+      ELSE
+         FAC=2D0
+      ENDIF
+      H=H*FAC
+      GOTO 100
+      END
