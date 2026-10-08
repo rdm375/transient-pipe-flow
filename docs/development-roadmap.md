@@ -1,7 +1,7 @@
 # Isothermal Pipe Simulator — Development Roadmap
 
-**Status:** Proposed development roadmap  
-**Updated:** 2026-10-08  
+**Status:** Proposed development roadmap
+**Updated:** 2026-10-08
 **Current branch:** `development/m9-production-hardening`
 
 ## 1. Project Direction
