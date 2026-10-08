@@ -17,6 +17,7 @@ C=======================================================================
       SAVE JAC,AC
       DOUBLE PRECISION RNORM,RNEW,SNORM,USCALE,LAMBDA
 
+      NITER = 0
       NU = 2*N + 2
       IF (NU .GT. 202) THEN
          INFO = 3
@@ -50,6 +51,7 @@ C=======================================================================
    40    CONTINUE
          CALL SOLVE_DENSE(NU,AC,LDJ,RHS,DU,LINFO)
          IF (LINFO .NE. 0) THEN
+            NITER = ITER + 1
             INFO = 2
             RETURN
          ENDIF
@@ -75,6 +77,7 @@ C=======================================================================
             IF (RNEW .LT. RNORM) GOTO 80
             LAMBDA = 0.5D0*LAMBDA
    70    CONTINUE
+         NITER = ITER + 1
          INFO = 4
          RETURN
 
