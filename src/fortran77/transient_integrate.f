@@ -8,6 +8,7 @@ C=======================================================================
      &                               STOL,MAXIT,TIME,HMIN,HOUT,
      &                               HPOUT,HLINE,HNIT,HMAXBAL,
      &                               INFO)
+      USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
       IMPLICIT NONE
       INTEGER N,NSTEPS,MAXIT,INFO,K,I,NITER
       DOUBLE PRECISION PO(0:*),MO(0:*),TIME(0:*),HMIN(0:*)
@@ -19,11 +20,26 @@ C=======================================================================
       DOUBLE PRECISION U(202),PNEW(0:100),MNEW(0:99)
       DOUBLE PRECISION MOUTO,MOUTN,TNEW,BALERR,DEMAND_RAMP
 
-      IF (N .GT. 100) THEN
+      LOGICAL PIPE_VALID
+      EXTERNAL PIPE_VALID
+      IF (N.LT.2.OR.N.GT.100.OR.NSTEPS.LT.0) THEN
          INFO = 3
          RETURN
       ENDIF
 
+      IF (.NOT.PIPE_VALID(N,PO,MO,MINO,DX,DT,THETA,
+     & D,A,T,Z,RS,MU,EPS,RTOL,STOL,MAXIT).OR.
+     & .NOT.IEEE_IS_FINITE(PIN).OR.
+     & .NOT.IEEE_IS_FINITE(MDOT0).OR.
+     & .NOT.IEEE_IS_FINITE(MDOT1).OR.
+     & .NOT.IEEE_IS_FINITE(TRAMP)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (PIN.LE.0D0.OR.TRAMP.LT.0D0) THEN
+         INFO=3
+         RETURN
+      ENDIF
       MOUTO = MDOT0
       TIME(0) = 0.0D0
       HMIN(0) = MINO

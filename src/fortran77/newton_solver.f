@@ -5,6 +5,7 @@ C=======================================================================
       SUBROUTINE NEWTON_SOLVE(N,U,PO,MO,MINO,MOUTO,MOUTN,PINN,
      &                        DX,DT,THETA,D,A,T,Z,RS,MU,EPS,
      &                        RTOL,STOL,MAXIT,VERBOSE,INFO,NITER)
+      USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
       IMPLICIT NONE
       INTEGER N,MAXIT,VERBOSE,INFO,NITER
       INTEGER NU,LDJ,I,J,LS,LINFO,ITER
@@ -17,14 +18,37 @@ C=======================================================================
       SAVE JAC,AC
       DOUBLE PRECISION RNORM,RNEW,SNORM,USCALE,LAMBDA
 
+      LOGICAL PIPE_VALID
+      EXTERNAL PIPE_VALID
       NITER = 0
-      NU = 2*N + 2
-      IF (N.LT.2.OR.NU.GT.202) THEN
+      IF (N.LT.2.OR.N.GT.100) THEN
          INFO = 3
          NITER = 0
          RETURN
       ENDIF
+      NU = 2*N + 2
 
+      IF (.NOT.PIPE_VALID(N,PO,MO,MINO,DX,DT,THETA,
+     & D,A,T,Z,RS,MU,EPS,RTOL,STOL,MAXIT)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (.NOT.IEEE_IS_FINITE(MOUTO).OR.
+     &    .NOT.IEEE_IS_FINITE(MOUTN).OR.
+     &    .NOT.IEEE_IS_FINITE(PINN)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (PINN.LE.0D0) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      DO 4 I=1,NU
+         IF (.NOT.IEEE_IS_FINITE(U(I))) THEN
+            INFO=3
+            RETURN
+         ENDIF
+    4 CONTINUE
       DO 5 I=1,NU
          WORK(I) = U(I)
     5 CONTINUE
