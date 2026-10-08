@@ -1,0 +1,108 @@
+C     M7C-18A: REAL FORTRAN SOLVER INVENTORY HISTORY.
+C     ARGS: DT_SECONDS DURATION_SECONDS OUTPUT_CSV [N]
+      PROGRAM INVENTORYHISTORY
+      IMPLICIT NONE
+      INTEGER N,K,I,NSTEPS,INFO,NITER,MAXIT,IOS
+      DOUBLE PRECISION PO(0:100),MO(0:99),PN(0:100)
+      DOUBLE PRECISION MN(0:99),U(202),PI,D,A,T,Z,RS,MU,EPS
+      DOUBLE PRECISION L,DX,DT,THETA,PIN,MDOT0,MDOT1,TRAMP
+      DOUBLE PRECISION MINO,MOUTO,MOUTN,RE,FD0,COEF0,X
+      DOUBLE PRECISION RTOL,STOL,MASS0,MASS1,BAL,CUMDEF
+      DOUBLE PRECISION TIME,DURATION,DEMAND_RAMP
+      DOUBLE PRECISION REYNOLDS_MASS,FRICTION_SJ
+      CHARACTER*256 ARG,OUTFILE
+      CALL GET_COMMAND_ARGUMENT(1,ARG)
+      READ(ARG,*,IOSTAT=IOS) DT
+      IF (IOS.NE.0 .OR. DT.LE.0D0) STOP 2
+      CALL GET_COMMAND_ARGUMENT(2,ARG)
+      READ(ARG,*,IOSTAT=IOS) DURATION
+      IF (IOS.NE.0 .OR. DURATION.LE.0D0) STOP 2
+      CALL GET_COMMAND_ARGUMENT(3,OUTFILE)
+      IF (LEN_TRIM(OUTFILE).EQ.0) STOP 2
+      N=20
+      CALL GET_COMMAND_ARGUMENT(4,ARG)
+      IF (LEN_TRIM(ARG).GT.0) THEN
+         READ(ARG,*,IOSTAT=IOS) N
+         IF (IOS.NE.0) STOP 2
+      ENDIF
+      IF (N.LT.2 .OR. N.GT.100) STOP 2
+      NSTEPS=NINT(DURATION/DT)
+      IF (DABS(DBLE(NSTEPS)*DT-DURATION).GT.1D-8) STOP 2
+      PI=4D0*DATAN(1D0)
+      D=1D0
+      A=PI*D*D/4D0
+      T=288.15D0
+      Z=0.90D0
+      RS=500D0
+      MU=1.1D-5
+      EPS=4.5D-5
+      L=100000D0
+      DX=L/DBLE(N)
+      THETA=0.65D0
+      PIN=8D6
+      MDOT0=100D0
+      MDOT1=105D0
+      TRAMP=600D0
+      RTOL=1D-11
+      STOL=1D-12
+      MAXIT=30
+      RE=REYNOLDS_MASS(MDOT0,D,A,MU)
+      FD0=FRICTION_SJ(RE,EPS,D)
+      COEF0=FD0*Z*RS*T*MDOT0*MDOT0/(D*A*A)
+      DO 10 I=0,N
+         X=DBLE(I)*DX
+         PO(I)=DSQRT(PIN*PIN-COEF0*X)
+   10 CONTINUE
+      DO 20 I=0,N-1
+         MO(I)=MDOT0
+   20 CONTINUE
+      MINO=MDOT0
+      MOUTO=MDOT0
+      CALL LINEPACK_CZ(N,PO,DX,A,T,Z,RS,MASS0)
+      OPEN(UNIT=31,FILE=TRIM(OUTFILE),STATUS='REPLACE',
+     &     ACTION='WRITE',IOSTAT=IOS)
+      IF (IOS.NE.0) STOP 3
+      WRITE(31,'(A)') 'time_s,inventory_kg,inlet_kg_s,'//
+     & 'outlet_kg_s,imbalance_kg_s,inventory_rate_kg_s,'//
+     & 'step_balance_defect_kg,cumulative_defect_kg,'//
+     & 'outlet_pressure_pa,newton_iterations'
+      CUMDEF=0D0
+      WRITE(31,100) 0D0,MASS0,MINO,MOUTO,0D0,0D0,
+     &     0D0,CUMDEF,PO(N),0
+      DO 200 K=1,NSTEPS
+         TIME=DBLE(K)*DT
+         MOUTN=DEMAND_RAMP(TIME,MDOT0,MDOT1,TRAMP)
+         CALL TRANSIENT_STEP(N,PO,MO,MINO,MOUTO,MOUTN,PIN,
+     &        DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,
+     &        MAXIT,0,U,INFO,NITER)
+         IF (INFO.NE.0) THEN
+            WRITE(*,*) 'STEP FAILED',K,' INFO=',INFO
+            STOP 4
+         ENDIF
+         PN(0)=U(1)
+         DO 30 I=0,N-1
+            MN(I)=U(2*I+3)
+            PN(I+1)=U(2*I+4)
+   30    CONTINUE
+         CALL LINEPACK_CZ(N,PN,DX,A,T,Z,RS,MASS1)
+         BAL=MASS1-MASS0-DT*(THETA*(U(2)-MOUTN)
+     &       +(1D0-THETA)*(MINO-MOUTO))
+         CUMDEF=CUMDEF+BAL
+         WRITE(31,100) TIME,MASS1,U(2),MOUTN,U(2)-MOUTN,
+     &      (MASS1-MASS0)/DT,BAL,CUMDEF,PN(N),NITER
+         DO 40 I=0,N
+            PO(I)=PN(I)
+   40    CONTINUE
+         DO 50 I=0,N-1
+            MO(I)=MN(I)
+   50    CONTINUE
+         MASS0=MASS1
+         MINO=U(2)
+         MOUTO=MOUTN
+  200 CONTINUE
+  100 FORMAT(9(ES24.15E3,','),I4)
+      CLOSE(31)
+      WRITE(*,'(A,I0,A,F9.3,A,I0,A,ES12.4)')
+     & 'n=',N,' dt=',DT,' steps=',NSTEPS,
+     & ' cumulative defect kg=',CUMDEF
+      END

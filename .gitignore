@@ -20,3 +20,11 @@
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# Generated benchmark results
+/benchmarks/results-m7c/
+/benchmarks/results-m8/
+
+# Python cache
+__pycache__/
+*.py[cod]
