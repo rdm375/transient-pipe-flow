@@ -208,8 +208,7 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
      &                 DMAX1(DABS(QNEW),DABS(QOLD)))))
          ETA=ETA/ETOL
       ENDIF
-      IF ((.NOT.(ETA.GE.0D0.OR.ETA.LT.0D0)).OR.
-     &    ETA.GT.1D100) THEN
+      IF (.NOT.IEEE_IS_FINITE(ETA).OR.ETA.GT.1D100) THEN
          INFO=8
          RETURN
       ENDIF

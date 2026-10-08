@@ -1,0 +1,129 @@
+C     M9C.3 integration failure injection and Newton accounting.
+C     Stub TRANSIENT_STEP succeeds twice and fails on attempt 3.
+      PROGRAM M9C3
+      IMPLICIT NONE
+      INTEGER N,MR,I,INFO,NA,NR,NT,NN
+      PARAMETER (N=4,MR=8)
+      INTEGER HN(0:MR),CALLS
+      COMMON /M9C3COUNT/ CALLS
+      DOUBLE PRECISION PO(0:N),MO(0:N-1),MI
+      DOUBLE PRECISION TIME(0:MR),DTR(0:MR),HMI(0:MR)
+      DOUBLE PRECISION HO(0:MR),HP(0:MR),HL(0:MR)
+      DOUBLE PRECISION HE(0:MR),HB(0:MR),HC(0:MR)
+      DOUBLE PRECISION TS(2),PS(2),QS(2),AT(4),RY(4),BMAX
+      DOUBLE PRECISION DX,D,A,T,Z,RS,MU,EPS,TH
+      DX=100D0
+      D=1D0
+      A=0.7853981633974483D0
+      T=288.15D0
+      Z=0.9D0
+      RS=500D0
+      MU=1.1D-5
+      EPS=4.5D-5
+      TH=0.65D0
+      TS(1)=0D0
+      TS(2)=100D0
+      PS(1)=8D6
+      PS(2)=8D6
+      QS(1)=100D0
+      QS(2)=100D0
+      DO 10 I=1,4
+         AT(I)=1D0
+         RY(I)=0D0
+   10 CONTINUE
+C     Fixed-step failure after two committed steps.
+      CALL M9C3_RESET(N,PO,MO,MI)
+      CALLS=0
+      CALL INTEGRATE_TRANSIENT(N,PO,MO,MI,8D6,100D0,
+     & 100D0,0D0,10D0,4,TH,DX,D,A,T,Z,RS,MU,EPS,
+     & 1D-11,1D-12,30,TIME,HMI,HO,HP,HL,HN,BMAX,INFO)
+      IF (INFO.EQ.0.OR.CALLS.NE.3) STOP 11
+      IF (TIME(2).LE.TIME(1)) STOP 12
+      CALL M9C3_CHECK(N,PO,MO,MI)
+      PRINT *, 'M9C.3 FIXED PARTIAL FAILURE PASS'
+C     Ramp adaptive failure after two accepted steps.
+      CALL M9C3_RESET(N,PO,MO,MI)
+      CALLS=0
+      CALL INTEGRATE_TRANSIENT_ADAPTIVE(N,PO,MO,MI,
+     & 8D6,100D0,100D0,0D0,100D0,TH,DX,D,A,T,Z,RS,
+     & MU,EPS,1D-11,1D-12,30,10D0,1D-5,20D0,1D6,
+     & 0D0,0D0,0,MR,TIME,DTR,HMI,HO,HP,HL,HN,HE,
+     & HB,HC,NA,NR,NT,NN,INFO)
+      IF (INFO.NE.6.OR.NA.NE.2.OR.NR.NE.1) STOP 21
+      IF (NT.NE.3.OR.NN.NE.9.OR.CALLS.NE.3) STOP 22
+      IF (TIME(2).LE.TIME(1).OR.TIME(1).LE.0D0) STOP 23
+      IF (HN(1).NE.2.OR.HN(2).NE.3) STOP 24
+      CALL M9C3_CHECK(N,PO,MO,MI)
+      PRINT *, 'M9C.3 RAMP PARTIAL FAILURE PASS'
+C     Scheduled adaptive must obey the same accounting contract.
+      CALL M9C3_RESET(N,PO,MO,MI)
+      CALLS=0
+      CALL INTEGRATE_TRANSIENT_ADAPTIVE_SCHEDULE(N,PO,
+     & MO,MI,2,TS,PS,QS,100D0,TH,DX,D,A,T,Z,RS,
+     & MU,EPS,1D-11,1D-12,30,10D0,1D-5,20D0,1D6,
+     & 0D0,0D0,0,MR,AT,RY,TIME,DTR,HMI,HO,HP,HL,
+     & HN,HE,HB,HC,NA,NR,NT,NN,INFO)
+      IF (INFO.NE.6.OR.NA.NE.2.OR.NR.NE.1) STOP 31
+      IF (NT.NE.3.OR.NN.NE.9.OR.CALLS.NE.3) STOP 32
+      IF (TIME(2).LE.TIME(1).OR.TIME(1).LE.0D0) STOP 33
+      IF (HN(1).NE.2.OR.HN(2).NE.3) STOP 34
+      CALL M9C3_CHECK(N,PO,MO,MI)
+      PRINT *, 'M9C.3 SCHEDULE PARTIAL FAILURE PASS'
+      PRINT *, 'M9C.3 FAILURE ACCOUNTING PASS'
+      END
+
+      SUBROUTINE M9C3_RESET(N,PO,MO,MI)
+      IMPLICIT NONE
+      INTEGER N,I
+      DOUBLE PRECISION PO(0:*),MO(0:*),MI
+      DO 10 I=0,N
+         PO(I)=8D6
+   10 CONTINUE
+      DO 20 I=0,N-1
+         MO(I)=100D0
+   20 CONTINUE
+      MI=100D0
+      END
+
+      SUBROUTINE M9C3_CHECK(N,PO,MO,MI)
+      IMPLICIT NONE
+      INTEGER N,I
+      DOUBLE PRECISION PO(0:*),MO(0:*),MI
+      IF (TRANSFER(MI,0_8).NE.TRANSFER(100D0,0_8))
+     & STOP 41
+      DO 10 I=0,N
+         IF (TRANSFER(PO(I),0_8).NE.
+     &       TRANSFER(8D6,0_8)) STOP 42
+   10 CONTINUE
+      DO 20 I=0,N-1
+         IF (TRANSFER(MO(I),0_8).NE.
+     &       TRANSFER(100D0,0_8)) STOP 43
+   20 CONTINUE
+      END
+
+C     Deliberately replaces TRANSIENT_STEP in this test binary.
+C     NI=2,3 on accepted calls and NI=4 on the failed call.
+      SUBROUTINE TRANSIENT_STEP(N,PO,MO,MINO,MOUTO,MOUTN,
+     & PINN,DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,
+     & MAXIT,VERBOSE,U,INFO,NITER)
+      IMPLICIT NONE
+      INTEGER N,MAXIT,VERBOSE,INFO,NITER,I,CALLS
+      COMMON /M9C3COUNT/ CALLS
+      DOUBLE PRECISION PO(0:*),MO(0:*),MINO,MOUTO,MOUTN
+      DOUBLE PRECISION PINN,DX,DT,THETA,D,A,T,Z,RS,MU
+      DOUBLE PRECISION EPS,RTOL,STOL,U(*)
+      CALLS=CALLS+1
+      NITER=CALLS+1
+      IF (CALLS.EQ.3) THEN
+         INFO=1
+         RETURN
+      ENDIF
+      IF (CALLS.GT.3) STOP 51
+      INFO=0
+      U(1)=PO(0)
+      U(2)=MINO
+      DO 10 I=0,N-1
+         U(2*I+3)=MO(I)
+         U(2*I+4)=PO(I+1)
+   10 CONTINUE
+      END

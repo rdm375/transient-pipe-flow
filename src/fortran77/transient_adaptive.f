@@ -126,6 +126,8 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
      & PIN,DX,H,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,
      & MAXIT,0,U,INFO,NI)
       NTOTAL=NTOTAL+1
+C     Count Newton work for every attempted solve.
+      NNEWTON=NNEWTON+NI
       IF (INFO.NE.0) THEN
          REJ=REJ+1
          NREJ=NREJ+1
@@ -136,7 +138,6 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
          H=0.5D0*H
          GOTO 200
       ENDIF
-      NNEWTON=NNEWTON+NI
       PN(0)=U(1)
       DO 210 I=0,N-1
          MN(I)=U(2*I+3)
@@ -161,6 +162,11 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
          ETA=DMAX1(ETA,2D0*CF*H*H*VAL/
      &                ((H+HPREV)*5D0))
          ETA=ETA/ETOL
+      ENDIF
+C     Fail safely on nonfinite error indicators.
+      IF (.NOT.IEEE_IS_FINITE(ETA).OR.ETA.GT.1D100) THEN
+         INFO=8
+         RETURN
       ENDIF
       IF (ETA.GT.1D0) THEN
          REJ=REJ+1
