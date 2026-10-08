@@ -1,7 +1,7 @@
 # Future Numerical Accuracy and Robustness Refinements
 
-**Status:** Deferred  
-**Origin:** M9 Newton convergence investigation, October 2026  
+**Status:** Deferred
+**Origin:** M9 Newton convergence investigation, October 2026
 **Priority:** Revisit when justified by accuracy, robustness, or performance requirements.
 
 ## 1. Background
