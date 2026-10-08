@@ -289,3 +289,5 @@ m9e3-failure-check: $(BUILD_DIR)/m9e3_failure_interface
 
 $(BUILD_DIR)/m9e3_failure_interface: $(BUILD_DIR)/obj/check/src/interfaces/pipe_solver_api.o $(BUILD_DIR)/obj/check/src/fortran77/models/eos_constant_z.o $(BUILD_DIR)/obj/check/src/fortran77/models/friction_swamee_jain.o $(BUILD_DIR)/obj/check/src/fortran77/transient_residual.o $(BUILD_DIR)/obj/check/src/fortran77/transient_jacobian.o $(BUILD_DIR)/obj/check/src/fortran77/linear_solve.o $(BUILD_DIR)/obj/check/src/fortran77/input_validation.o $(BUILD_DIR)/obj/check/src/fortran77/newton_solver.o $(BUILD_DIR)/obj/check/src/fortran77/transient_step.o $(BUILD_DIR)/obj/check/src/fortran77/transient_integrate.o $(BUILD_DIR)/obj/check/src/fortran77/transient_adaptive.o $(BUILD_DIR)/obj/check/src/fortran77/transient_adaptive_schedule.o $(BUILD_DIR)/obj/check/tests/fortran77/m9e3_failure_interface.o
 	$(FC) $(FFLAGS_CHECK) -I $(BUILD_DIR)/interfaces $^ -o $@
+
+include m10.mk
