@@ -8,7 +8,7 @@ FFLAGS_OPT   = -O3 -march=native
 
 BUILD_DIR = build
 
-.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
+.PHONY: all check steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check characterize dynamics waves wave-analysis modal-analysis small-verify docs clean
 
 all: steady-residual
 
@@ -89,7 +89,21 @@ adaptive-check: $(BUILD_DIR)
 	    tests/fortran77/adaptive_integration_check.f \
 	    -o $(BUILD_DIR)/adaptive_integration_check
 
-check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check
+adaptive-schedule-check adaptive-schedule-pressure-check: $(BUILD_DIR)
+	$(FC) $(FFLAGS_CHECK) \
+	    src/fortran77/models/eos_constant_z.f \
+	    src/fortran77/models/friction_swamee_jain.f \
+	    src/fortran77/transient_residual.f \
+	    src/fortran77/transient_jacobian.f \
+	    src/fortran77/linear_solve.f \
+	    src/fortran77/newton_solver.f \
+	    src/fortran77/transient_step.f \
+	    src/fortran77/transient_integrate.f \
+	    src/fortran77/transient_adaptive_schedule.f \
+	    tests/fortran77/$(subst -,_,$@).f \
+	    -o $(BUILD_DIR)/$@
+
+check: steady-residual friction-check jacobian-check newton-check timestep-check integration-check adaptive-check adaptive-schedule-check adaptive-schedule-pressure-check
 	./$(BUILD_DIR)/steady_residual
 	./$(BUILD_DIR)/friction_check
 	./$(BUILD_DIR)/jacobian_check
@@ -97,6 +111,8 @@ check: steady-residual friction-check jacobian-check newton-check timestep-check
 	./$(BUILD_DIR)/timestep_check
 	./$(BUILD_DIR)/transient_integration_check
 	./$(BUILD_DIR)/adaptive_integration_check
+	./$(BUILD_DIR)/adaptive-schedule-check
+	./$(BUILD_DIR)/adaptive-schedule-pressure-check
 
 characterize: $(BUILD_DIR)
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra -Wconversion-extra \
