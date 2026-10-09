@@ -1,18 +1,18 @@
 # M13 — C++20 / Fortran77 performance parity investigation
 
-**Project:** Isothermal transient single-pipe simulator (`isothermal-pipe-sim`)  
-**Status:** Investigation in progress; numerical parity established; matched-LTO performance criterion not yet met  
-**Platform:** Dell Precision 7710, GNU GCC/GFortran 15.2, Debian Linux  
-**Performance acceptance criterion:** `median(C++ CPU time) / median(Fortran CPU time) <= 1.05`  
+**Project:** Isothermal transient single-pipe simulator (`isothermal-pipe-sim`)
+**Status:** C++ performance target met against the existing Fortran LTO baseline; symmetric Fortran optimization and re-baselining pending
+**Platform:** Dell Precision 7710, GNU GCC/GFortran 15.2, Debian Linux
+**Performance acceptance criterion:** `median(C++ CPU time) / median(Fortran CPU time) <= 1.05`
 **Reference workload:** 100 spatial cells, 15 s timestep, 8,000 steps (120,000 s simulated)
 
 ## Executive summary
 
 The project ported a validated fixed-form Fortran77 transient gas-pipeline solver to native C++20, retaining the numerical formulation and testing each translated component against its Fortran counterpart. Initial measurements suggested that C++ was faster than Fortran. Controlled recompilation revealed that this result depended strongly on **link-time optimization (LTO)**: C++ led in matched non-LTO builds, whereas Fortran led when both implementations were compiled with `-O3 -march=native -flto`.
 
-The latest alternating-run, externally measured process-CPU-time experiment found medians of **131.778 ms (Fortran LTO)** and **142.291 ms (C++ LTO)**, a C++/Fortran ratio of **1.07978**. The M13 acceptance ratio is 1.05; at that measured Fortran baseline, C++ must reach approximately **138.367 ms**, a reduction of **3.924 ms** (about 2.76% of current C++ time). The ratio is workload- and machine-specific; this is not a general ranking of languages.
+The original matched-LTO experiment found medians of **131.778 ms (Fortran)** and **142.291 ms (C++)**, a C++/Fortran ratio of **1.07978**. After targeted C++ optimizations M13.2b–M13.4, a new 40-round rotating-order external process-CPU-time experiment measured **131.974 ms (Fortran LTO)**, **142.957 ms (original C++)**, and **137.375 ms (optimized C++)**. The optimized ratio was **1.040921**, meeting the 1.05 acceptance threshold with **1.198 ms** margin. This is parity with the **existing** Fortran LTO baseline, not a claim about an independently reoptimized Fortran implementation. The ratio is workload- and machine-specific; it does not rank languages generally.
 
-Crucially, both LTO executables produced matching reported final outlet pressure, linepack, Newton iteration count, and maximum numerical mass-conservation defect. Callgrind reported **660,855,731 instructions** for Fortran and **742,413,263** for C++, a difference of **81,557,532** (12.34% relative to Fortran). The dominant measured libm routines had **identical exclusive instruction counts**, so the excess is not explained by additional execution *inside those routines*. Attribution of the remaining difference to a specific C++ kernel or compiler transformation is ongoing.
+Crucially, both LTO executables produced matching reported final outlet pressure, linepack, Newton iteration count, and maximum numerical mass-conservation defect. Callgrind reported **660,855,731 instructions** for Fortran and **742,413,263** for C++, a difference of **81,557,532** (12.34% relative to Fortran). The dominant measured libm routines had **identical exclusive instruction counts**, so the excess is not explained by additional execution *inside those routines*. The historical instruction difference motivated targeted changes; the results of those changes and remaining uncertainties are documented in Sections 11–14.
 
 ## 1. Scientific and numerical context
 
@@ -229,7 +229,7 @@ The following observations are grounded in the current `banded_solver.cpp`, `new
 
 **Integration:** `IntegrationWorkspace` owns and reuses the Newton workspace and state arrays. Each step calls `transient_step`, unpacks the interleaved state, records history and linepack, evaluates the numerical conservation defect, and copies new pressure/flow back to the live state. The implementation deliberately preserves Fortran arithmetic grouping in the conservation calculation. These copies and diagnostic computations are measurable work, but are not yet demonstrated to be excessive relative to Fortran.
 
-**No identified optimization yet:** The source offers hypotheses (band indexing, validation, copying, loop structure, compiler specialization), not a verified cause. The matching math-library instruction counts make wholesale changes to the friction formula an especially poor first experiment.
+**No identified optimization yet:** The source offers hypotheses (band indexing, validation, copying, loop structure, compiler specialization), not a verified cause. The historical matching math-library instruction counts argued against changing the friction formula. Subsequent M13.3 optimization instead cached mathematically invariant old-time friction contributions across repeated Newton residual evaluations, reducing redundant calls without changing the physical formula.
 
 ## 8. Interpretation and limits
 
@@ -250,7 +250,7 @@ The following observations are grounded in the current `banded_solver.cpp`, `new
 - That instruction-count ratios should equal elapsed-time ratios.
 - That identical final printed outputs guarantee bitwise equality of all internal states.
 
-## 9. Proposed next experiments
+## 9. Historical proposed experiments (superseded by M13.2b–M13.4)
 
 1. **Freeze the baseline:** retain the current binaries or reproducible build commands, CTest results, numerical output, and benchmark summaries. Do not overwrite the validated LTO builds while experimenting.
 2. **Inspect matching kernels:** compare generated instructions for the C++ and Fortran banded elimination, residual evaluation, and Newton loops. Inlining makes whole-program source mapping necessary.
@@ -258,7 +258,7 @@ The following observations are grounded in the current `banded_solver.cpp`, `new
 4. **Change one thing at a time:** begin with provably redundant bookkeeping or safe index simplifications; avoid changing physical formulas or widening numerical tolerances.
 5. **Run numerical gates after each change:** five CTest checks, component parity tests, 8,000-step Fortran/C++ comparison, Newton iteration count, and linepack/mass-conservation diagnostics.
 6. **Repeat controlled performance measurement:** alternating runs, external process CPU time, medians, and ideally uncertainty estimates across independent batches.
-7. **Accept M13 only when** `T_CPP / T_Fortran <= 1.05` on a documented matched-build benchmark with numerical parity preserved.
+7. **Accept the original M13 C++ parity target only when** `T_CPP / T_Fortran <= 1.05` on a documented matched-build benchmark with numerical parity preserved. **This criterion was met by M13.4 against the pre-existing Fortran LTO reference; symmetric Fortran optimization remains open.**
 
 ## 10. Reproduction commands
 
@@ -298,6 +298,97 @@ callgrind_annotate --auto=no --inclusive=no --threshold=100 \
 
 For source attribution, use a separate C++ build with `-O3 -march=native -flto -g`, then run Callgrind on that executable. Keep the instrumented timings separate from native performance timings.
 
+## 11. M13 optimization results (2026-10-09)
+
+The original measurements in Sections 2–8 are retained as historical baselines, not the final status of the investigation. The C++ solver was optimized incrementally without altering the governing equations or intentionally relaxing numerical tolerances.
+
+| Stage | Change | Evidence |
+|---|---|---|
+| M13.2b | Specialized direct-indexed fixed-width banded solver | Committed as `6c2730b`; dedicated solver parity (3,942 comparisons, zero error); five CTest checks passed. |
+| M13.3 | Precompute old-time friction source once per Newton solve; reuse it for initial and trial residuals | Existing Fortran/C++ residual parity: 1,160 comparisons, zero relative error; additional 1,160 exact cached/uncached C++ comparisons passed; five CTest checks passed. |
+| M13.4 | Add persistent `NewtonWorkspace::initial_guess`, removing per-step construction of `std::vector<double> guess(nu)` | Five CTest checks passed; full-run reference outputs unchanged; allocation removed from timestep path. |
+
+M13.3 retains the public uncached `assemble_residual` API and adds an internal cached evaluation path. The cache is computed using the same physical-model routines and arithmetic ordering as the original old-time friction expression. The dedicated equality test checks the cases exercised by the harness; it does not establish universal bitwise identity for all possible states and compiler settings.
+
+### 11.1 Callgrind results
+
+| Profile | Instructions (`Ir`) |
+|---|---:|
+| Historical Fortran LTO | 660,855,731 |
+| Original C++ LTO + symbols | 742,413,224 |
+| M13.2b C++ | 709,028,666 |
+| M13.3 C++ | 694,167,510 |
+
+M13.3 eliminated **14,861,156 instructions** relative to M13.2b (**2.096%**). These are instrumented instruction counts, not native CPU time or cycle counts. No comparable M13.4 Callgrind result is yet recorded here.
+
+### 11.2 Controlled native CPU-time benchmarks
+
+The following figures were obtained from separate benchmark sessions; **do not subtract medians across sessions to attribute an individual optimization**. Measurements use child-process user-plus-system CPU time (`os.fork`, `os.execv`, `os.wait4`), warm-up, and 40 rounds with rotating execution order. Each session's ratio is computed from that session's medians.
+
+| Session | Fortran LTO (ms) | Original C++ (ms) | Optimized C++ (ms) | Optimized C++ / Fortran |
+|---|---:|---:|---:|---:|
+| M13.2b | 132.168 | 142.909 | 139.984 | 1.05914 |
+| M13.3 | 132.207 | 145.513 | 141.137 | 1.067553 |
+| **M13.4** | **131.974** | **142.957** | **137.375** | **1.040921** |
+
+In the final M13.4 session, the optimized C++ executable was **3.90% faster than the original C++ executable** (`1 - 137.375 / 142.957`) and **4.09% slower than Fortran**. The threshold was `1.05 * 131.974 = 138.573 ms`, leaving **1.198 ms** of margin. The final benchmark thus **PASSed** the stated 1.05 target for this workload and reference binary. The intermediate M13.2b and M13.3 medians should not be treated as a monotonic timing progression; session-to-session variation is evident.
+
+No formal confidence intervals, frequency locking, or independent cross-session reproducibility analysis have yet been reported. The result establishes the recorded acceptance-test outcome, not a statistical guarantee of a fixed percentage across all workloads or systems.
+
+### 11.3 Numerical outputs retained
+
+For the 100-cell, 8,000-step case, the M13.4 executable produced:
+
+| Quantity | M13.4 result |
+|---|---:|
+| Final outlet pressure | 7,843,657.8677442567 Pa |
+| Final inlet flow | 104.99999993783898 kg/s |
+| Final outlet flow | 105 kg/s |
+| Final linepack | 4,798,420.4378263094 kg |
+| Maximum numerical mass-conservation defect | 6.2161021219253598e-08 kg/s |
+| Newton iterations | 1,049 |
+
+These match the recorded reference outputs. The maximum numerical conservation defect must not be confused with the physical inlet/outlet flow imbalance.
+
+## 12. Interpretation: implementation overhead versus shared mathematics
+
+**M13.4 — allocation reuse.** The original C++ timestep constructed a new `std::vector<double>` on each call. Reusing a workspace vector removes that repeated allocation. The existing Fortran timestep declares a fixed-size `DOUBLE PRECISION GUESS(202)` local array, so it likely does not incur comparable repeated heap-allocation overhead. This is an implementation/memory-management improvement, not an algorithmic advantage over Fortran. Actual Fortran storage placement remains compiler-dependent.
+
+**M13.3 — invariant old-time friction.** In a theta-method momentum residual, the old-time friction source depends on old pressure and old mass flow, not on the current Newton iterate. Recomputing it during each residual evaluation is mathematically redundant. The same optimization can be implemented in Fortran77. A further candidate is to precompute the entire old-time momentum contribution, including the pressure gradient, subject to numerical-parity checks and preservation of arithmetic grouping.
+
+**M13.2b — banded indexing.** Fixed-width direct indexing reduces general indexing work in C++; analogous simplifications may or may not benefit Fortran depending on its existing band storage, compiler optimization, and generated loops. This requires inspection and measurement rather than assuming Fortran already performs the same optimization.
+
+The observed parity therefore does **not** establish that optimized C++ is within 5% of the best attainable Fortran CPU implementation. It establishes parity with the **currently benchmarked Fortran LTO implementation**.
+
+## 13. Agreed next phase: symmetric Fortran optimization before CUDA
+
+Preserve the original Fortran LTO executable/source revision as a historical baseline and the validated M13.4 C++ executable/source revision as the C++ baseline. Do not silently replace either baseline. Then:
+
+1. Inspect the Fortran residual and Newton call graph to confirm repeated old-time friction evaluation and identify suitable storage for per-timestep cached terms.
+2. Implement old-time friction caching in Fortran as an isolated, reversible change. Preserve numerical evaluation order where possible, and validate residual, Newton, transient, and mass-conservation parity.
+3. Consider caching the complete old-time momentum term **symmetrically in Fortran and C++**, in separate changes, and revalidate numerical equivalence.
+4. Compare the Fortran and C++ banded solvers and generated code; transfer any demonstrably beneficial indexing optimizations to Fortran.
+5. Benchmark original Fortran, optimized Fortran, and optimized C++ with matched compiler optimization settings, the same workload, rotating-order process-CPU measurements, and variability estimates. Record provenance and preserve all three binaries.
+6. Reassess the C++/Fortran ratio against the **optimized Fortran** reference. If it exceeds 1.05, document the new gap and investigate it before describing parity against the reoptimized reference.
+7. Freeze both optimized CPU baselines and their regression evidence before M14 CUDA implementation; use the best validated CPU baseline for GPU speedup claims.
+
+The Fortran optimization phase is **planned, not completed**. No speedup or revised parity ratio against reoptimized Fortran is claimed.
+
+## 14. Reproduction notes for the final M13.4 benchmark
+
+The benchmarked executable was preserved as `build/m13-snapshots/pipe_sim_cpp_m13_4`. The Fortran reference was `build/m10_cpu_banded`; the original C++ comparison was `build/m13-baseline-source/pipe_sim_cpp`. Commands:
+
+```bash
+./build/m10_cpu_banded 100 15 120000
+./build/m13-baseline-source/pipe_sim_cpp 100 8000
+./build/m13-snapshots/pipe_sim_cpp_m13_4 100 8000
+ctest --test-dir build/m13-cpp-lto --output-on-failure
+```
+
+For rigorous replication, use the original 40-round external process-CPU-time harness, not the application's internal `elapsed_s` field. The binaries and build directories are local artifacts and must be archived separately if long-term reproducibility is required. The M13.3 and M13.4 source changes were uncommitted at the time of the final reported measurements; this report does not invent a commit identifier for them.
+
 ## Conclusion
 
-This investigation illustrates why scientific-software performance claims must control **algorithm, compiler, optimization mode, workload, numerical results, and measurement method**. The C++20 port initially appeared faster than Fortran77. Once both implementations used LTO, Fortran became faster, even though their expensive mathematical library work and final numerical outputs matched. The remaining gap is modest but measurable; identifying its source is the outstanding M13 engineering task. The evidence supports targeted investigation of generated numerical loops and bookkeeping, **not** a general conclusion about C++ versus Fortran performance.
+The investigation demonstrated that build configuration and source-level implementation decisions materially affect CPU performance comparisons. With matched LTO builds, the original C++20 port was slower than Fortran77. Targeted C++ banded indexing, caching of invariant old-time friction, and reuse of initial-guess storage produced a validated C++ implementation with a **1.040921×** CPU-time ratio against the existing Fortran LTO baseline for the reference workload, satisfying the original **1.05×** acceptance criterion. The original numerical outputs and all five integrated regression checks were preserved.
+
+The next scientifically stronger comparison is **optimized Fortran versus optimized C++**, applying shared mathematical optimizations to both implementations before assessing language/compiler overhead or GPU speedup. No general conclusion about intrinsic C++ versus Fortran performance is warranted.
