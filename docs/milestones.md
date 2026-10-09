@@ -1,5 +1,157 @@
 # Isothermal Pipe Simulator Milestones
 
+## Current development roadmap — CPU to GPU
+
+This roadmap supersedes the milestone numbering in the historical
+planning sections below. Earlier research objectives remain relevant,
+but are not automatically considered completed or assigned to the
+new milestones.
+
+The development sequence is:
+
+1. Optimize and freeze the Fortran77 CPU reference.
+2. Port the validated numerical algorithm to C++.
+3. Establish C++ numerical and performance parity.
+4. Introduce GPU acceleration.
+5. Optimize and validate CPU/GPU execution.
+
+All implementations retain the same governing equations, conservative
+spatial discretization, theta-method integration, boundary conditions,
+and numerical-assurance requirements unless a change is explicitly
+specified and independently validated.
+
+### M10 — Banded CPU solver optimization
+
+**Status: COMPLETE — published on `development/m10-performance`.**
+
+- [x] M10.1: Establish optimized dense CPU baseline.
+- [x] M10.2: Profile the dense implementation.
+- [x] M10.3: Establish Jacobian bandwidth and solver parity.
+- [x] M10.4: Implement direct-banded Jacobian assembly and Newton solve.
+- [x] M10.5: Select banded Newton as the default optimized CPU backend.
+- [x] Preserve the dense implementation for independent comparison.
+- [x] Verify dense/banded numerical parity across 75 benchmark runs.
+- [x] Preserve benchmark measurements and provenance.
+- [x] Publish implementation and performance evidence.
+
+Reference workload: N=100, dt=15 s, duration=1200 s,
+80 timesteps and 160 Newton iterations.
+
+Measured dense/banded CPU times: approximately 330 ms and 8.3 ms
+in the final direct comparison, respectively.
+
+The full benchmark sweep is documented in
+`benchmarks/results-m10/M10_PERFORMANCE.md`.
+
+### M11 — Fortran77 performance optimization
+
+**Status: PLANNED — next milestone.**
+
+- [ ] M11.1: Reprofile the optimized banded solver.
+- [ ] M11.2: Investigate residual and Jacobian evaluation costs.
+- [ ] M11.3: Investigate banded factorization and substitution costs.
+- [ ] M11.4: Investigate memory access, redundant work, and compiler
+      optimization behavior.
+- [ ] M11.5: Freeze the optimized F77 reference and benchmark suite.
+
+Requirements:
+
+- Profile before optimizing.
+- Measure changes against the frozen M10 baseline.
+- Preserve Newton convergence and failure contracts.
+- Preserve physical and numerical conservation diagnostics.
+- Test multiple mesh sizes, timesteps, and flow directions.
+- Reject unexplained numerical discrepancies.
+- Record compiler flags, hardware, revision, and benchmark variability.
+- Avoid relaxed floating-point semantics in the reference configuration.
+
+### M12 — C++20 numerical port
+
+**Status: PLANNED.**
+
+- [ ] Implement the same mathematical model in C++20.
+- [ ] Preserve unknown ordering and banded Jacobian structure initially.
+- [ ] Implement equivalent residual, Jacobian, Newton, and time integration.
+- [ ] Preserve boundary half-cell conservation equations.
+- [ ] Match physical outputs and numerical diagnostics against F77.
+- [ ] Verify convergence, failure behavior, and reversed-flow cases.
+- [ ] Establish a cross-language regression suite.
+- [ ] Freeze the numerically validated C++ baseline.
+
+Initially prioritize numerical transparency over architectural redesign.
+Keep the F77 reference permanently available.
+
+### M13 — C++ CPU performance parity
+
+**Status: PLANNED.**
+
+- [ ] Establish comparable F77 and C++ benchmark builds.
+- [ ] Profile C++ before optimizing.
+- [ ] Investigate data layout, aliasing, inlining, and vectorization.
+- [ ] Compare GCC and Clang where available.
+- [ ] Establish C++ performance within 5% of optimized F77,
+      or faster, on representative workloads.
+- [ ] Assess measurement variability before accepting small differences.
+- [ ] Preserve cross-language numerical and conservation parity.
+- [ ] Freeze both CPU implementations and their benchmark evidence.
+
+The 5% performance target is an engineering objective, not a
+numerical-correctness tolerance.
+
+### M14 — CUDA implementation
+
+**Status: PLANNED.**
+
+- [ ] Establish the GPU execution and memory architecture.
+- [ ] Implement FP64 numerical kernels initially.
+- [ ] Validate GPU residual and Jacobian evaluation against CPU.
+- [ ] Investigate structured GPU linear solvers.
+- [ ] Implement end-to-end transient integration.
+- [ ] Investigate single-pipe execution.
+- [ ] Investigate batched independent-pipe execution.
+- [ ] Preserve physical models, discretization, and failure semantics.
+
+Single-pipe latency and batched throughput must be measured separately.
+
+### M15 — GPU performance optimization and validation
+
+**Status: PLANNED.**
+
+- [ ] Establish CPU/GPU numerical parity over a validation matrix.
+- [ ] Verify Newton convergence and failure handling.
+- [ ] Verify linepack and global mass conservation.
+- [ ] Distinguish physical inlet/outlet mass imbalance from numerical
+      conservation defect.
+- [ ] Profile GPU kernels and data transfers.
+- [ ] Optimize memory layout, occupancy, and solver execution.
+- [ ] Measure single-simulation latency and batched throughput.
+- [ ] Determine CPU/GPU crossover regimes.
+- [ ] Preserve reproducible performance and validation evidence.
+
+### Deferred research objectives
+
+The following objectives from the earlier roadmap remain open and
+are not implicitly completed by the CPU-to-GPU milestones:
+
+- Versioned numerical-assurance evidence and explainable reports.
+- Interactive numerical exploration and visualization.
+- Modular EOS, friction, momentum, and boundary-condition models.
+- Peng-Robinson EOS integration and extended physical-model validation.
+- Adaptive surrogate modeling and TDAR parameter-space research.
+- Adjoint sensitivities, state estimation, and network extensions.
+
+These should receive their own milestones when their scope is adopted.
+
+---
+
+## Historical specification and milestone plan
+
+The sections below preserve the original specification, validation
+history, and research roadmap. Some milestone numbers below refer
+to an earlier planning sequence and are superseded by the current
+CPU-to-GPU roadmap above.
+
+
 ## V0 — Mathematical and numerical specification
 
 - [x] Define isothermal single-pipe governing equations.
@@ -295,3 +447,150 @@ the default engineering models become more sophisticated.
 - [x] Finite-difference verification of friction-source Jacobian.
 - [ ] Explicit laminar-flow model.
 - [ ] Explicit transition-flow policy.
+
+---
+
+## Added development roadmap — optimized F77 to CUDA
+
+This appended roadmap records the CPU-to-GPU development sequence.
+The preceding milestone plan is retained in full, including its original
+M10–M13 headings and research objectives. Numbering in this appended
+roadmap reflects the later performance-engineering workstream; duplicate
+labels in the earlier plan are historical and do not indicate completion.
+
+The development sequence is:
+
+1. Optimize and freeze the Fortran77 CPU reference.
+2. Port the validated numerical algorithm to C++.
+3. Establish C++ numerical and performance parity.
+4. Introduce GPU acceleration.
+5. Optimize and validate CPU/GPU execution.
+
+All implementations retain the same governing equations, conservative
+spatial discretization, theta-method integration, boundary conditions,
+and numerical-assurance requirements unless a change is explicitly
+specified and independently validated.
+
+### M10 — Banded CPU solver optimization
+
+**Status: COMPLETE — published on `development/m10-performance`.**
+
+- [x] M10.1: Establish optimized dense CPU baseline.
+- [x] M10.2: Profile the dense implementation.
+- [x] M10.3: Establish Jacobian bandwidth and solver parity.
+- [x] M10.4: Implement direct-banded Jacobian assembly and Newton solve.
+- [x] M10.5: Select banded Newton as the default optimized CPU backend.
+- [x] Preserve the dense implementation for independent comparison.
+- [x] Verify dense/banded numerical parity across 75 benchmark runs.
+- [x] Preserve benchmark measurements and provenance.
+- [x] Publish implementation and performance evidence.
+
+Reference workload: N=100, dt=15 s, duration=1200 s,
+80 timesteps and 160 Newton iterations.
+
+Measured dense/banded CPU times: approximately 330 ms and 8.3 ms
+in the final direct comparison, respectively.
+
+The full benchmark sweep is documented in
+`benchmarks/results-m10/M10_PERFORMANCE.md`.
+
+### M11 — Fortran77 performance optimization
+
+**Status: PLANNED — next milestone.**
+
+- [ ] M11.1: Reprofile the optimized banded solver.
+- [ ] M11.2: Investigate residual and Jacobian evaluation costs.
+- [ ] M11.3: Investigate banded factorization and substitution costs.
+- [ ] M11.4: Investigate memory access, redundant work, and compiler
+      optimization behavior.
+- [ ] M11.5: Freeze the optimized F77 reference and benchmark suite.
+
+Requirements:
+
+- Profile before optimizing.
+- Measure changes against the frozen M10 baseline.
+- Preserve Newton convergence and failure contracts.
+- Preserve physical and numerical conservation diagnostics.
+- Test multiple mesh sizes, timesteps, and flow directions.
+- Reject unexplained numerical discrepancies.
+- Record compiler flags, hardware, revision, and benchmark variability.
+- Avoid relaxed floating-point semantics in the reference configuration.
+
+### M12 — C++20 numerical port
+
+**Status: PLANNED.**
+
+- [ ] Implement the same mathematical model in C++20.
+- [ ] Preserve unknown ordering and banded Jacobian structure initially.
+- [ ] Implement equivalent residual, Jacobian, Newton, and time integration.
+- [ ] Preserve boundary half-cell conservation equations.
+- [ ] Match physical outputs and numerical diagnostics against F77.
+- [ ] Verify convergence, failure behavior, and reversed-flow cases.
+- [ ] Establish a cross-language regression suite.
+- [ ] Freeze the numerically validated C++ baseline.
+
+Initially prioritize numerical transparency over architectural redesign.
+Keep the F77 reference permanently available.
+
+### M13 — C++ CPU performance parity
+
+**Status: PLANNED.**
+
+- [ ] Establish comparable F77 and C++ benchmark builds.
+- [ ] Profile C++ before optimizing.
+- [ ] Investigate data layout, aliasing, inlining, and vectorization.
+- [ ] Compare GCC and Clang where available.
+- [ ] Establish C++ performance within 5% of optimized F77,
+      or faster, on representative workloads.
+- [ ] Assess measurement variability before accepting small differences.
+- [ ] Preserve cross-language numerical and conservation parity.
+- [ ] Freeze both CPU implementations and their benchmark evidence.
+
+The 5% performance target is an engineering objective, not a
+numerical-correctness tolerance.
+
+### M14 — CUDA implementation
+
+**Status: PLANNED.**
+
+- [ ] Establish the GPU execution and memory architecture.
+- [ ] Implement FP64 numerical kernels initially.
+- [ ] Validate GPU residual and Jacobian evaluation against CPU.
+- [ ] Investigate structured GPU linear solvers.
+- [ ] Implement end-to-end transient integration.
+- [ ] Investigate single-pipe execution.
+- [ ] Investigate batched independent-pipe execution.
+- [ ] Preserve physical models, discretization, and failure semantics.
+
+Single-pipe latency and batched throughput must be measured separately.
+
+### M15 — GPU performance optimization and validation
+
+**Status: PLANNED.**
+
+- [ ] Establish CPU/GPU numerical parity over a validation matrix.
+- [ ] Verify Newton convergence and failure handling.
+- [ ] Verify linepack and global mass conservation.
+- [ ] Distinguish physical inlet/outlet mass imbalance from numerical
+      conservation defect.
+- [ ] Profile GPU kernels and data transfers.
+- [ ] Optimize memory layout, occupancy, and solver execution.
+- [ ] Measure single-simulation latency and batched throughput.
+- [ ] Determine CPU/GPU crossover regimes.
+- [ ] Preserve reproducible performance and validation evidence.
+
+### Research objectives retained from the earlier plan
+
+The following objectives from the preceding roadmap remain open and
+are not implicitly completed by the CPU-to-GPU milestones:
+
+- Versioned numerical-assurance evidence and explainable reports.
+- Interactive numerical exploration and visualization.
+- Modular EOS, friction, momentum, and boundary-condition models.
+- Peng-Robinson EOS integration and extended physical-model validation.
+- Adaptive surrogate modeling and TDAR parameter-space research.
+- Adjoint sensitivities, state estimation, and network extensions.
+
+These should receive their own milestones when their scope is adopted.
+
+---
