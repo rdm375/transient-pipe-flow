@@ -1,8 +1,8 @@
 # M15 — CPU Performance Ceiling Investigation
 
-**Project:** Isothermal transient single-pipe simulator  
-**Status:** PROPOSED — FUTURE WORK  
-**Predecessor:** M13 CPU performance parity  
+**Project:** Isothermal transient single-pipe simulator
+**Status:** PROPOSED — FUTURE WORK
+**Predecessor:** M13 CPU performance parity
 **Independent milestone:** M14 GPU acceleration
 
 ## 1. Research objective

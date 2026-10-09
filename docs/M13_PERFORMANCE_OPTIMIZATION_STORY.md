@@ -1,10 +1,10 @@
 # M13 — CPU Performance Optimization Story
 
-**Project:** Isothermal transient single-pipe simulator  
-**Status:** COMPLETE  
-**Final milestone:** `m13-final`  
-**Platform:** Dell Precision 7710, Debian Linux  
-**Compiler:** GCC/GFortran 15.2  
+**Project:** Isothermal transient single-pipe simulator
+**Status:** COMPLETE
+**Final milestone:** `m13-final`
+**Platform:** Dell Precision 7710, Debian Linux
+**Compiler:** GCC/GFortran 15.2
 **Optimization:** `-O3 -march=native -flto`
 
 ## 1. Objective
