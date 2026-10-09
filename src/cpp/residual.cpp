@@ -1,17 +1,20 @@
 #include "pipe_sim/transient.hpp"
 #include "pipe_sim/physics.hpp"
+#include "residual_internal.hpp"
 
 #include <stdexcept>
 
 namespace pipe_sim {
 
-void assemble_residual(
+template<bool Cached>
+static void assemble_residual_impl(
     int n,
     std::span<const double> u,
     std::span<const double> po,
     std::span<const double> mo,
     const TransientBoundary& bc,
     const TransientParameters& par,
+    std::span<const double> old_friction,
     std::span<double> r)
 {
     if (n < 2 ||
@@ -20,6 +23,11 @@ void assemble_residual(
         mo.size() != static_cast<std::size_t>(n) ||
         r.size() != static_cast<std::size_t>(2*n+2)) {
         throw std::invalid_argument("Invalid transient array dimensions");
+    }
+
+    if constexpr (Cached) {
+        if (old_friction.size() != static_cast<std::size_t>(n))
+            throw std::invalid_argument("Invalid old friction cache dimensions");
     }
 
     const double dx = par.dx;
@@ -65,13 +73,19 @@ void assemble_residual(
         const double sf = friction_source(fd,d,a,rhof,u[im]);
 
         // Old-time friction source.
-        const double rhol0 = rho(po[i]);
-        const double rhor0 = rho(po[i+1]);
-        const double rhof0 = 0.5*(rhol0+rhor0);
+        double sf0;
 
-        const double re0 = reynolds_mass(mo[i],d,a,mu);
-        const double fd0 = friction_sj(re0,eps,d);
-        const double sf0 = friction_source(fd0,d,a,rhof0,mo[i]);
+        if constexpr (Cached) {
+            sf0 = old_friction[i];
+        } else {
+            const double rhol0 = rho(po[i]);
+            const double rhor0 = rho(po[i+1]);
+            const double rhof0 = 0.5*(rhol0+rhor0);
+
+            const double re0 = reynolds_mass(mo[i],d,a,mu);
+            const double fd0 = friction_sj(re0,eps,d);
+            sf0 = friction_source(fd0,d,a,rhof0,mo[i]);
+        }
 
         // Reduced momentum equation.
         r[row] = (u[im]-mo[i])/(a*dt)
@@ -92,6 +106,34 @@ void assemble_residual(
                      + cold*(bc.outlet_flow_old-mo[i]);
         }
     }
+}
+
+
+void assemble_residual(
+    int n,
+    std::span<const double> u,
+    std::span<const double> po,
+    std::span<const double> mo,
+    const TransientBoundary& bc,
+    const TransientParameters& par,
+    std::span<double> r)
+{
+    assemble_residual_impl<false>(
+        n, u, po, mo, bc, par, {}, r);
+}
+
+void assemble_residual_cached(
+    int n,
+    std::span<const double> u,
+    std::span<const double> po,
+    std::span<const double> mo,
+    const TransientBoundary& bc,
+    const TransientParameters& par,
+    std::span<const double> old_friction,
+    std::span<double> r)
+{
+    assemble_residual_impl<true>(
+        n, u, po, mo, bc, par, old_friction, r);
 }
 
 } // namespace pipe_sim

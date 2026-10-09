@@ -1,4 +1,6 @@
 #include "pipe_sim/transient.hpp"
+#include "../../src/cpp/residual_internal.hpp"
+#include "pipe_sim/physics.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -41,6 +43,8 @@ int main()
         std::vector<double> u(2*n+2);
         std::vector<double> r_cpp(2*n+2);
         std::vector<double> r_f77(2*n+2);
+        std::vector<double> r_cached(2*n+2);
+        std::vector<double> old_friction(n);
 
         for (int scenario = 0; scenario < 4; ++scenario) {
             for (int i = 0; i <= n; ++i) {
@@ -66,6 +70,40 @@ int main()
 
             assemble_residual(
                 n, u, po, mo, bc, par, r_cpp);
+
+            // Precompute the same old-time friction source used
+            // by the uncached residual implementation.
+            for (int i = 0; i < n; ++i) {
+                const double rhol0 = density_cz(
+                    po[i], par.temperature, par.z, par.gas_constant);
+                const double rhor0 = density_cz(
+                    po[i+1], par.temperature, par.z, par.gas_constant);
+                const double rhof0 = 0.5*(rhol0+rhor0);
+
+                const double re0 = reynolds_mass(
+                    mo[i], par.diameter, par.area, par.viscosity);
+                const double fd0 = friction_sj(
+                    re0, par.roughness, par.diameter);
+
+                old_friction[i] = friction_source(
+                    fd0, par.diameter, par.area, rhof0, mo[i]);
+            }
+
+            assemble_residual_cached(
+                n, u, po, mo, bc, par, old_friction, r_cached);
+
+            for (std::size_t j = 0; j < r_cpp.size(); ++j) {
+                if (r_cached[j] != r_cpp[j]) {
+                    ++failures;
+                    std::cerr << std::setprecision(17)
+                              << "CACHE FAIL n=" << n
+                              << " scenario=" << scenario
+                              << " component=" << j
+                              << " cached=" << r_cached[j]
+                              << " uncached=" << r_cpp[j]
+                              << '\n';
+                }
+            }
 
             assemble_residual_(
                 &n, u.data(), po.data(), mo.data(),

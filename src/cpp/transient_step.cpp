@@ -44,7 +44,12 @@ NewtonResult transient_step(
     //
     // This vector is allocated once per call in the initial port.
     // We will eliminate that allocation during M13 optimization.
-    std::vector<double> guess(nu);
+    if (ws.initial_guess.size() != static_cast<std::size_t>(nu)) {
+        throw std::invalid_argument(
+            "Newton initial-guess workspace dimensions mismatch");
+    }
+
+    auto& guess = ws.initial_guess;
 
     guess[0] = bc.inlet_pressure_new;
     guess[1] = bc.inlet_flow_old;

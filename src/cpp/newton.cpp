@@ -1,5 +1,7 @@
 #include "pipe_sim/newton.hpp"
 #include "pipe_sim/banded_solver.hpp"
+#include "pipe_sim/physics.hpp"
+#include "residual_internal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -23,6 +25,8 @@ NewtonWorkspace::NewtonWorkspace(int n)
     correction.resize(nu);
     trial_state.resize(nu);
     work_state.resize(nu);
+    old_friction.resize(n);
+    initial_guess.resize(nu);
 }
 
 NewtonResult newton_solve_banded(
@@ -52,7 +56,8 @@ NewtonResult newton_solve_banded(
         ws.rhs.size() != static_cast<std::size_t>(nu) ||
         ws.correction.size() != static_cast<std::size_t>(nu) ||
         ws.trial_state.size() != static_cast<std::size_t>(nu) ||
-        ws.work_state.size() != static_cast<std::size_t>(nu)) {
+        ws.work_state.size() != static_cast<std::size_t>(nu) ||
+        ws.old_friction.size() != static_cast<std::size_t>(n)) {
         throw std::invalid_argument("Newton workspace dimensions mismatch");
     }
 
@@ -100,11 +105,33 @@ NewtonResult newton_solve_banded(
             return {3,0};
     }
 
+    // Old-time friction is invariant during Newton iteration.
+    // Evaluate it once per solve, using the original arithmetic.
+    const double d = par.diameter;
+    const double a = par.area;
+    const double t = par.temperature;
+    const double z = par.z;
+    const double rs = par.gas_constant;
+    const double mu = par.viscosity;
+    const double eps = par.roughness;
+
+    for (int i = 0; i < n; ++i) {
+        const double rhol0 = density_cz(old_pressure[i],t,z,rs);
+        const double rhor0 = density_cz(old_pressure[i+1],t,z,rs);
+        const double rhof0 = 0.5*(rhol0+rhor0);
+
+        const double re0 = reynolds_mass(old_flow[i],d,a,mu);
+        const double fd0 = friction_sj(re0,eps,d);
+
+        ws.old_friction[i] =
+            friction_source(fd0,d,a,rhof0,old_flow[i]);
+    }
+
     std::copy(state.begin(),state.end(),ws.work_state.begin());
 
-    assemble_residual(
+    assemble_residual_cached(
         n,ws.work_state,old_pressure,old_flow,
-        bc,par,ws.residual);
+        bc,par,ws.old_friction,ws.residual);
 
     constexpr int kl = 2;
     constexpr int ku = 1;
@@ -158,9 +185,9 @@ NewtonResult newton_solve_banded(
                     ws.work_state[i] + lambda*ws.correction[i];
             }
 
-            assemble_residual(
+            assemble_residual_cached(
                 n,ws.trial_state,old_pressure,old_flow,
-                bc,par,ws.trial_residual);
+                bc,par,ws.old_friction,ws.trial_residual);
 
             rnew = 0.0;
 
