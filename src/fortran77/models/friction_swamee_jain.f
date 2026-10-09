@@ -95,3 +95,30 @@ C=======================================================================
      &                           + 2.0D0*FD*DABS(MDOT))
       RETURN
       END
+
+C=======================================================================
+C  COMBINED SWAMEE-JAIN VALUE AND REYNOLDS DERIVATIVE
+C=======================================================================
+
+      SUBROUTINE FRICTION_SJ_VALUE_DERIVATIVE(RE,EPS,D,FD,DFDRE)
+      IMPLICIT NONE
+      DOUBLE PRECISION RE,EPS,D,FD,DFDRE
+      DOUBLE PRECISION ARG,LARG,DXDRE,LN10
+
+      IF (RE .LE. 0.0D0) STOP 'ERROR: nonpositive Reynolds number'
+      IF (EPS .LT. 0.0D0) STOP 'ERROR: negative roughness'
+      IF (D .LE. 0.0D0) STOP 'ERROR: nonpositive diameter'
+
+      ARG = EPS/(3.7D0*D) + 5.74D0/(RE**0.9D0)
+      LARG = DLOG10(ARG)
+
+      FD = 0.25D0/(LARG*LARG)
+
+      LN10 = DLOG(10.0D0)
+      DXDRE = -0.9D0*5.74D0/(RE**1.9D0)
+
+      DFDRE = -0.5D0*DXDRE/
+     &        (ARG*LN10*LARG*LARG*LARG)
+
+      RETURN
+      END
