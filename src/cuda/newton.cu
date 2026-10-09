@@ -1,3 +1,4 @@
+#include <climits>
 #include "pipe_sim/newton.hpp"
 #include "pipe_sim/integrate.hpp"
 
@@ -431,6 +432,8 @@ __device__ double gpu_linepack(
 
 __global__ void persistent_integrate_kernel(
     int n,
+    int batch_size,
+    int history_stride,
     double* pressure,
     double* flow,
     double* inlet_flow,
@@ -446,8 +449,26 @@ __global__ void persistent_integrate_kernel(
     int* history_iterations,
     IntegrationResult* result)
 {
-    if (blockIdx.x != 0 || threadIdx.x != 0)
+    const int pipe =
+        blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (pipe >= batch_size)
         return;
+
+    pressure += static_cast<size_t>(pipe) * (n + 1);
+    flow += static_cast<size_t>(pipe) * n;
+    inlet_flow += pipe;
+
+    const size_t history_offset =
+        static_cast<size_t>(pipe) * history_stride;
+
+    time += history_offset;
+    history_inlet += history_offset;
+    history_outlet += history_offset;
+    history_pressure += history_offset;
+    history_linepack += history_offset;
+    history_iterations += history_offset;
+    result += pipe;
 
     if (n < 2 || n > 100 || steps < 0) {
         *result = {3, 0, 0.0};
@@ -603,10 +624,57 @@ extern "C" cudaError_t launch_pipe_integrate(
         return cudaErrorInvalidValue;
 
     persistent_integrate_kernel<<<1,1>>>(
-        n,pressure,flow,inlet_flow,demand,steps,
+        n,1,steps+1,
+        pressure,flow,inlet_flow,demand,steps,
         par,opt,time,history_inlet,history_outlet,
         history_pressure,history_linepack,
         history_iterations,result);
+
+    return cudaGetLastError();
+}
+
+
+extern "C" cudaError_t launch_pipe_integrate_batch(
+    int n,
+    int batch_size,
+    double* pressure,
+    double* flow,
+    double* inlet_flow,
+    DemandRamp demand,
+    int steps,
+    TransientParameters par,
+    NewtonOptions opt,
+    double* time,
+    double* history_inlet,
+    double* history_outlet,
+    double* history_pressure,
+    double* history_linepack,
+    int* history_iterations,
+    IntegrationResult* result)
+{
+    if (n < 2 || n > 100 ||
+        batch_size < 1 || steps < 0 ||
+        steps == INT_MAX ||
+        !pressure || !flow || !inlet_flow ||
+        !time || !history_inlet || !history_outlet ||
+        !history_pressure || !history_linepack ||
+        !history_iterations || !result)
+        return cudaErrorInvalidValue;
+
+    constexpr int threads_per_block = 32;
+
+    const int blocks =
+        batch_size / threads_per_block +
+        (batch_size % threads_per_block != 0);
+
+    persistent_integrate_kernel
+        <<<blocks,threads_per_block>>>(
+            n,batch_size,steps+1,
+            pressure,flow,inlet_flow,demand,steps,
+            par,opt,time,history_inlet,
+            history_outlet,history_pressure,
+            history_linepack,history_iterations,
+            result);
 
     return cudaGetLastError();
 }
