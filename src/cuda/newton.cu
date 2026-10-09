@@ -260,16 +260,13 @@ __device__ bool valid(
     return true;
 }
 
-__global__ void newton_kernel(
+__device__ NewtonResult newton_device(
     int n, double* state, const double* po, const double* mo,
     TransientBoundary bc, TransientParameters par,
-    NewtonOptions opt, NewtonResult* result)
+    NewtonOptions opt)
 {
-    if (blockIdx.x!=0 || threadIdx.x!=0) return;
-
     if (!valid(n,state,po,mo,bc,par,opt)) {
-        *result={3,0};
-        return;
+        return {3,0};
     }
 
     const int nu=2*n+2;
@@ -305,8 +302,7 @@ __global__ void newton_kernel(
 
         if (rnorm<=opt.residual_tolerance) {
             for (int i=0; i<nu; ++i) state[i]=work[i];
-            *result={0,iter};
-            return;
+            return {0,iter};
         }
 
         jacobian(n,work,par,ab);
@@ -315,8 +311,7 @@ __global__ void newton_kernel(
 
         const int linfo=banded_solve(nu,ab,rhs,correction);
         if (linfo!=0) {
-            *result={2,iter+1};
-            return;
+            return {2,iter+1};
         }
 
         double snorm=0.0;
@@ -349,8 +344,7 @@ __global__ void newton_kernel(
         }
 
         if (!accepted) {
-            *result={4,iter+1};
-            return;
+            return {4,iter+1};
         }
 
         for (int i=0; i<nu; ++i) {
@@ -361,12 +355,20 @@ __global__ void newton_kernel(
         if (lambda*snorm<=opt.step_tolerance*uscale &&
             rnew<=10.0*opt.residual_tolerance) {
             for (int i=0; i<nu; ++i) state[i]=work[i];
-            *result={0,iter+1};
-            return;
+            return {0,iter+1};
         }
     }
 
-    *result={1,opt.max_iterations};
+    return {1,opt.max_iterations};
+}
+
+__global__ void newton_kernel(
+    int n, double* state, const double* po, const double* mo,
+    TransientBoundary bc, TransientParameters par,
+    NewtonOptions opt, NewtonResult* result)
+{
+    if (blockIdx.x!=0 || threadIdx.x!=0) return;
+    *result = newton_device(n,state,po,mo,bc,par,opt);
 }
 
 } // namespace
