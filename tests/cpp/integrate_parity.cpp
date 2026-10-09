@@ -269,6 +269,9 @@ int main()
         }
     }
 
+    // M12.5a: M11 long-duration reference workload.
+    run_case(100, 8000, 0);
+
     std::cout << std::scientific
               << std::setprecision(17)
               << "M12.4b integration comparisons: "
