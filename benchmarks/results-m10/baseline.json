@@ -1,0 +1,28 @@
+{
+  "timestamp_utc": "2026-10-08T22:59:29.566657+00:00",
+  "git_commit": "1a414e1b3785cf07317e6ab8da813ff9d2f4b309",
+  "git_describe": "m9e-complete",
+  "git_status": "M Makefile\n?? benchmarks/M10_BASELINE.md\n?? benchmarks/m10_cpu_baseline.f90\n?? benchmarks/results-m10/\n?? benchmarks/run_m10_baseline.py\n?? experiments/\n?? m10.mk",
+  "compiler": "GNU Fortran (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.43",
+  "processor": "",
+  "cpu_count": 8,
+  "repetitions": 5,
+  "meshes": [
+    10,
+    20,
+    40,
+    80,
+    100
+  ],
+  "timesteps": [
+    60.0,
+    30.0,
+    15.0
+  ],
+  "duration": 1200.0,
+  "timing": "Fortran CPU_TIME around INTEGRATE_TRANSIENT",
+  "wall_timing": "Python perf_counter around subprocess",
+  "numerical_baseline": "m9e-complete",
+  "source": "existing INTEGRATE_TRANSIENT, unmodified"
+}
