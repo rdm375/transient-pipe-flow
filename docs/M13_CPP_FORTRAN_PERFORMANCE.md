@@ -1,7 +1,7 @@
 # M13 — C++20 / Fortran77 performance parity investigation
 
 **Project:** Isothermal transient single-pipe simulator (`isothermal-pipe-sim`)
-**Status:** C++ performance target met against the existing Fortran LTO baseline; symmetric Fortran optimization and re-baselining pending
+**Status:** COMPLETE — independently optimized Fortran77 and C++20 implementations validated; final C++/Fortran CPU-time ratio 1.048309 (target <= 1.05)
 **Platform:** Dell Precision 7710, GNU GCC/GFortran 15.2, Debian Linux
 **Performance acceptance criterion:** `median(C++ CPU time) / median(Fortran CPU time) <= 1.05`
 **Reference workload:** 100 spatial cells, 15 s timestep, 8,000 steps (120,000 s simulated)
@@ -392,3 +392,162 @@ For rigorous replication, use the original 40-round external process-CPU-time ha
 The investigation demonstrated that build configuration and source-level implementation decisions materially affect CPU performance comparisons. With matched LTO builds, the original C++20 port was slower than Fortran77. Targeted C++ banded indexing, caching of invariant old-time friction, and reuse of initial-guess storage produced a validated C++ implementation with a **1.040921×** CPU-time ratio against the existing Fortran LTO baseline for the reference workload, satisfying the original **1.05×** acceptance criterion. The original numerical outputs and all five integrated regression checks were preserved.
 
 The next scientifically stronger comparison is **optimized Fortran versus optimized C++**, applying shared mathematical optimizations to both implementations before assessing language/compiler overhead or GPU speedup. No general conclusion about intrinsic C++ versus Fortran performance is warranted.
+
+
+---
+
+## M13.7–M13.8 — Symmetric optimization and final closure
+
+**Status:** COMPLETE — numerical validation PASS; CPU performance parity PASS.
+
+**Final source milestones:**
+
+- M13.7 Fortran optimization: commit `4880b52`,
+  tag `m13.7-fortran-friction-reuse`.
+- M13.8 C++ optimization: commit `d4a4055`,
+  tag `m13.8-cpp-friction-reuse`.
+
+### Optimization discovery
+
+Profiling identified repeated evaluation of the Swamee–Jain friction
+factor as a significant cost in the transient residual calculation.
+
+The initial Newton guess preserves the previous timestep's mass flow
+at each staggered face. Consequently, the initial residual evaluation
+can reuse the friction factor already calculated from the old-time
+mass flow.
+
+The old-time friction **source** cannot generally replace the
+new-time source because the face density may have changed.
+
+Both implementations therefore reuse only the friction factor and
+recalculate the new-time friction source using the current density.
+
+Fortran M13.7 introduced an optimized initial-residual path with
+cached old-time friction factors. C++ M13.8 implemented the
+corresponding optimization using a preallocated Newton workspace
+and a specialized residual-evaluation path.
+
+The existing residual and line-search behavior remains available.
+When the new-time mass flow differs from the old-time mass flow,
+the optimized path evaluates the friction factor normally.
+
+### Numerical validation
+
+The following checks passed:
+
+| Validation | Result |
+|---|---|
+| C++ LTO compilation | PASS |
+| Existing C++ CTest suite | 5/5 PASS |
+| M13.8 dedicated residual parity | 606 exact comparisons |
+| Three-way full-simulation output comparison | PASS |
+| Final Newton iteration count | 1,049 in all implementations |
+| Source diff whitespace validation | PASS |
+
+The full-simulation comparison covered the numerical quantities
+reported by all three executables:
+
+- Spatial cells: 100.
+- Timesteps: 8,000.
+- Simulated duration: 120,000 s.
+- Final outlet pressure: 7,843,657.8677442567 Pa.
+- Final linepack: 4,798,420.4378263094 kg.
+- Maximum mass-conservation defect:
+  6.2161021219253598e-08 kg/s.
+- Total Newton iterations: 1,049.
+
+All seven shared reported quantities agreed exactly after parsing
+their decimal representations as binary floating-point values.
+
+The two C++ executables additionally agreed on their reported
+final inlet and outlet mass flows.
+
+These results establish numerical agreement for the tested workload
+and states, not bitwise identity of every intermediate quantity for
+all possible inputs or compiler configurations.
+
+### Controlled performance benchmark
+
+**Platform:** Dell Precision 7710, Debian Linux.
+
+**Compiler optimization:** `-O3 -march=native -flto`.
+
+**Workload:** 100 cells, 15 s timestep, 8,000 steps,
+120,000 s simulated duration.
+
+**Measurement:** external child-process user-plus-system CPU time
+using Python `os.fork()`, `os.execv()`, and `os.wait4()`.
+
+**Procedure:** three warm-up runs per implementation followed by
+60 alternating, balanced-order rounds.
+
+| Implementation | Median CPU time | Minimum | Maximum |
+|---|---:|---:|---:|
+| Fortran M13.7 | 90.998 ms | 89.231 ms | 116.863 ms |
+| C++ M13.4 | 137.518 ms | 133.734 ms | 155.939 ms |
+| C++ M13.8 | 95.394 ms | 93.487 ms | 117.324 ms |
+
+The C++ M13.8 optimization reduced median CPU time by 30.632%
+relative to C++ M13.4, corresponding to a 1.4416x speedup.
+
+The final C++/Fortran CPU-time ratio was:
+
+\[
+R =
+\frac{T_{\mathrm{C++\ M13.8}}}
+     {T_{\mathrm{Fortran\ M13.7}}}
+= 1.048309.
+\]
+
+The acceptance criterion was:
+
+\[
+R \leq 1.05.
+\]
+
+**Result: PASS.**
+
+The margin is approximately 0.154 ms in the measured medians.
+This is a workload-specific performance result, not a claim that
+the two languages have equivalent performance in general.
+
+No confidence interval was established, and CPU-frequency or
+thermal-state effects were not independently controlled.
+
+### Executable provenance
+
+SHA-256 checksums for the benchmarked executables:
+
+| Implementation | SHA-256 |
+|---|---|
+| Fortran M13.7 | `f5383476aa919fcd38fde173070a6c5bde7bea0b5837f0da6bf54cccf0b4804c` |
+| C++ M13.4 | `b4b69db00c4ad9cd4bcff6ccf4e288b64122024234c796d2683f045ce9218e74` |
+| C++ M13.8 | `60c400fbb62c33805534d9b287075baa1e8bf46b89017086afa61c3894f5da97` |
+
+Local benchmark artifacts:
+
+- `build/m13-snapshots/m13_8c_benchmark.py`
+- `build/m13-snapshots/m13_8c_benchmark.log`
+- `build/m13-snapshots/m13_8c_cpu_results.csv`
+- `build/m13-snapshots/m13_8_residual_parity.cpp`
+
+These artifacts are local build-directory records and are not
+necessarily included in the Git repository.
+
+### Final interpretation
+
+The independent Fortran and C++ optimizations produced similar
+reductions in CPU time, approximately 30.6% in each implementation.
+
+This supports the identified performance mechanism: redundant
+friction-factor evaluations during initial Newton residual assembly.
+
+The final optimized implementations retain agreement on the
+validated numerical outputs and meet the project's original
+5% CPU-performance parity criterion.
+
+**M13 is closed.**
+
+The optimized Fortran77 and C++20 implementations form the
+validated CPU references for subsequent GPU development in M14.
