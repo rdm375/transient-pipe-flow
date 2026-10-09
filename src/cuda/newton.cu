@@ -1,4 +1,5 @@
 #include "pipe_sim/newton.hpp"
+#include "pipe_sim/integrate.hpp"
 
 #include <cuda_runtime.h>
 #include <cmath>
@@ -385,6 +386,227 @@ extern "C" cudaError_t launch_pipe_newton(
 
     newton_kernel<<<1,1>>>(
         n,state,old_pressure,old_flow,bc,par,opt,result);
+
+    return cudaGetLastError();
+}
+
+
+namespace {
+
+__device__ double gpu_demand_ramp(
+    double time, DemandRamp demand)
+{
+    if (demand.ramp_duration <= 0.0 ||
+        time >= demand.ramp_duration)
+        return demand.final_outlet_flow;
+
+    if (time <= 0.0)
+        return demand.initial_outlet_flow;
+
+    const double fraction = time / demand.ramp_duration;
+
+    return demand.initial_outlet_flow +
+        fraction * (demand.final_outlet_flow -
+                    demand.initial_outlet_flow);
+}
+
+__device__ double gpu_linepack(
+    int n, const double* pressure,
+    TransientParameters par)
+{
+    double mass = 0.0;
+
+    for (int i = 0; i <= n; ++i) {
+        double weight = 1.0;
+
+        if (i == 0 || i == n)
+            weight = 0.5;
+
+        mass = mass +
+            weight * density(pressure[i], par);
+    }
+
+    return par.area * par.dx * mass;
+}
+
+__global__ void persistent_integrate_kernel(
+    int n,
+    double* pressure,
+    double* flow,
+    double* inlet_flow,
+    DemandRamp demand,
+    int steps,
+    TransientParameters par,
+    NewtonOptions opt,
+    double* time,
+    double* history_inlet,
+    double* history_outlet,
+    double* history_pressure,
+    double* history_linepack,
+    int* history_iterations,
+    IntegrationResult* result)
+{
+    if (blockIdx.x != 0 || threadIdx.x != 0)
+        return;
+
+    if (n < 2 || n > 100 || steps < 0) {
+        *result = {3, 0, 0.0};
+        return;
+    }
+
+    if (!isfinite(*inlet_flow) ||
+        !isfinite(demand.inlet_pressure) ||
+        demand.inlet_pressure <= 0.0 ||
+        !isfinite(demand.initial_outlet_flow) ||
+        !isfinite(demand.final_outlet_flow) ||
+        !isfinite(demand.ramp_duration) ||
+        demand.ramp_duration < 0.0) {
+        *result = {3, 0, 0.0};
+        return;
+    }
+
+    // Reuse Newton's complete physical and numerical validation.
+    // A constructed state is sufficient for the initial validation.
+    double state[MAX_NU];
+
+    state[0] = demand.inlet_pressure;
+    state[1] = *inlet_flow;
+
+    for (int i = 0; i < n; ++i) {
+        state[2*i+2] = flow[i];
+        state[2*i+3] = pressure[i+1];
+    }
+
+    const TransientBoundary initial_bc{
+        *inlet_flow,
+        demand.initial_outlet_flow,
+        demand.initial_outlet_flow,
+        demand.inlet_pressure
+    };
+
+    if (!valid(n,state,pressure,flow,
+               initial_bc,par,opt)) {
+        *result = {3, 0, 0.0};
+        return;
+    }
+
+    double old_outlet_flow =
+        demand.initial_outlet_flow;
+
+    time[0] = 0.0;
+    history_inlet[0] = *inlet_flow;
+    history_outlet[0] = old_outlet_flow;
+    history_pressure[0] = pressure[n];
+    history_linepack[0] =
+        gpu_linepack(n,pressure,par);
+    history_iterations[0] = 0;
+
+    double max_mass_defect = 0.0;
+
+    for (int k = 1; k <= steps; ++k) {
+        const double new_time =
+            static_cast<double>(k) * par.dt;
+
+        const double new_outlet_flow =
+            gpu_demand_ramp(new_time,demand);
+
+        const TransientBoundary bc{
+            *inlet_flow,
+            old_outlet_flow,
+            new_outlet_flow,
+            demand.inlet_pressure
+        };
+
+        // Match the CPU transient_step initial guess.
+        state[0] = bc.inlet_pressure_new;
+        state[1] = bc.inlet_flow_old;
+
+        for (int i = 0; i < n; ++i) {
+            state[2*i+2] = flow[i];
+            state[2*i+3] = pressure[i+1];
+        }
+
+        const NewtonResult step = newton_device(
+            n,state,pressure,flow,bc,par,opt);
+
+        if (step.info != 0) {
+            *result = {
+                step.info,k-1,max_mass_defect
+            };
+            return;
+        }
+
+        // Newton succeeded: accept the new timestep.
+        pressure[0] = state[0];
+
+        for (int i = 0; i < n; ++i) {
+            flow[i] = state[2*i+2];
+            pressure[i+1] = state[2*i+3];
+        }
+
+        const double new_inlet_flow = state[1];
+
+        time[k] = new_time;
+        history_inlet[k] = new_inlet_flow;
+        history_outlet[k] = new_outlet_flow;
+        history_pressure[k] = pressure[n];
+
+        history_linepack[k] =
+            gpu_linepack(n,pressure,par);
+
+        history_iterations[k] = step.iterations;
+
+        const double balance_error = fabs(
+            (history_linepack[k] -
+             history_linepack[k-1]) / par.dt
+            - (par.theta *
+                (history_inlet[k] -
+                 history_outlet[k])
+              + (1.0-par.theta) *
+                (history_inlet[k-1] -
+                 history_outlet[k-1])));
+
+        max_mass_defect =
+            fmax(max_mass_defect,balance_error);
+
+        *inlet_flow = new_inlet_flow;
+        old_outlet_flow = new_outlet_flow;
+    }
+
+    *result = {0,steps,max_mass_defect};
+}
+
+} // namespace
+
+extern "C" cudaError_t launch_pipe_integrate(
+    int n,
+    double* pressure,
+    double* flow,
+    double* inlet_flow,
+    DemandRamp demand,
+    int steps,
+    TransientParameters par,
+    NewtonOptions opt,
+    double* time,
+    double* history_inlet,
+    double* history_outlet,
+    double* history_pressure,
+    double* history_linepack,
+    int* history_iterations,
+    IntegrationResult* result)
+{
+    if (n < 2 || n > 100 || steps < 0 ||
+        !pressure || !flow || !inlet_flow ||
+        !time || !history_inlet || !history_outlet ||
+        !history_pressure || !history_linepack ||
+        !history_iterations || !result)
+        return cudaErrorInvalidValue;
+
+    persistent_integrate_kernel<<<1,1>>>(
+        n,pressure,flow,inlet_flow,demand,steps,
+        par,opt,time,history_inlet,history_outlet,
+        history_pressure,history_linepack,
+        history_iterations,result);
 
     return cudaGetLastError();
 }
