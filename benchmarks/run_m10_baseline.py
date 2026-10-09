@@ -16,6 +16,8 @@ EXECUTABLE = ROOT / "build" / "m10_cpu_baseline"
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--executable", type=Path,
+                        default=EXECUTABLE)
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--duration", type=float, default=1200.0)
     parser.add_argument("--meshes", nargs="+", type=int,
@@ -28,8 +30,9 @@ def main():
 
     if args.repetitions < 1:
         parser.error("repetitions must be positive")
-    if not EXECUTABLE.is_file():
-        parser.error("build/m10_cpu_baseline is missing")
+    executable = args.executable.resolve()
+    if not executable.is_file():
+        parser.error(f"Executable is missing: {executable}")
 
     args.output.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -38,7 +41,7 @@ def main():
         for dt in args.timesteps:
             measurements = []
             for repetition in range(args.repetitions):
-                command = [str(EXECUTABLE), str(n), str(dt),
+                command = [str(executable), str(n), str(dt),
                            str(args.duration)]
                 started = time.perf_counter()
                 result = subprocess.run(
@@ -91,6 +94,7 @@ def main():
         "meshes": args.meshes,
         "timesteps": args.timesteps,
         "duration": args.duration,
+        "executable": str(executable),
         "timing": "Fortran CPU_TIME around INTEGRATE_TRANSIENT",
         "wall_timing": "Python perf_counter around subprocess",
         "numerical_baseline": "m9e-complete",

@@ -36,3 +36,25 @@ build/m10_cpu_profile: $(M10_CORE) benchmarks/m10_cpu_baseline.f90 \
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra \
 	    benchmarks/m10_profile.f90 $(M10_PROFILE_CORE) \
 	    build/m10_newton_profile.f build/m10_cpu_profile.f90 -o $@
+
+# M10.4: direct-banded Newton backend.
+M10_BANDED_CORE = \
+    src/fortran77/models/eos_constant_z.f \
+    src/fortran77/models/friction_swamee_jain.f \
+    src/fortran77/transient_residual.f \
+    src/fortran77/transient_jacobian_banded.f \
+    src/fortran77/banded_solve.f \
+    src/fortran77/input_validation.f \
+    src/fortran77/newton_solver_banded.f \
+    src/fortran77/newton_banded_entry.f \
+    src/fortran77/transient_step.f \
+    src/fortran77/transient_integrate.f
+
+.PHONY: m10-banded-build
+
+m10-banded-build: build/m10_cpu_banded
+
+build/m10_cpu_banded: $(M10_BANDED_CORE) benchmarks/m10_cpu_baseline.f90
+	@mkdir -p build
+	$(FC) $(FFLAGS_OPT) -Wall -Wextra $(M10_BANDED_CORE) \
+	    benchmarks/m10_cpu_baseline.f90 -o $@
