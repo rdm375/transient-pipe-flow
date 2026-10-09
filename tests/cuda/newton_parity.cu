@@ -65,7 +65,7 @@ int main()
         CHECK(cudaMalloc(&dmo,n*sizeof(double)));
         CHECK(cudaMalloc(&dresult,sizeof(NewtonResult)));
 
-        for (int scenario=0; scenario<6; ++scenario) {
+        for (int scenario=0; scenario<7; ++scenario) {
             TransientBoundary bc{
                 100.0,100.0,105.0,8.0e6
             };
@@ -129,6 +129,27 @@ int main()
             if (scenario==5)
                 po[n/2]=-1.0;
 
+            if (scenario==6) {
+                // Generate a converged state using the CPU solver.
+                // The second solve should converge at iteration zero.
+                std::vector<double> converged=initial;
+                NewtonWorkspace seed_ws(n);
+
+                const NewtonResult seed_result=
+                    newton_solve_banded(
+                        n,converged,po,mo,bc,par,opt,seed_ws);
+
+                if (seed_result.info!=0) {
+                    std::fprintf(
+                        stderr,
+                        "Failed to generate converged state n=%d\n",
+                        n);
+                    return 1;
+                }
+
+                initial=converged;
+            }
+
             std::vector<double> cpu=initial;
             std::vector<double> gpu(nu);
 
@@ -163,6 +184,21 @@ int main()
             CHECK(cudaMemcpy(
                 gpu.data(),dstate,nu*sizeof(double),
                 cudaMemcpyDeviceToHost));
+
+            if (scenario==6 &&
+                (cpu_result.info!=0 ||
+                 cpu_result.iterations!=0 ||
+                 gpu_result.info!=0 ||
+                 gpu_result.iterations!=0)) {
+                std::fprintf(
+                    stderr,
+                    "ZERO-ITERATION FAIL n=%d "
+                    "CPU=(%d,%d) GPU=(%d,%d)\n",
+                    n,
+                    cpu_result.info,cpu_result.iterations,
+                    gpu_result.info,gpu_result.iterations);
+                return 1;
+            }
 
             ++comparisons;
             if (cpu_result.info==gpu_result.info) {
