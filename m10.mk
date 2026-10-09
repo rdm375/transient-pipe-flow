@@ -58,3 +58,16 @@ build/m10_cpu_banded: $(M10_BANDED_CORE) benchmarks/m10_cpu_baseline.f90
 	@mkdir -p build
 	$(FC) $(FFLAGS_OPT) -Wall -Wextra $(M10_BANDED_CORE) \
 	    benchmarks/m10_cpu_baseline.f90 -o $@
+
+# M10.5: optimized production backend selection.
+# The dense implementation remains available for reference comparisons.
+M10_BACKEND ?= banded
+
+.PHONY: m10-production m10-production-dense m10-production-banded
+
+m10-production:
+	$(MAKE) m10-production-$(M10_BACKEND)
+
+m10-production-dense: m10-baseline-build
+
+m10-production-banded: m10-banded-build
