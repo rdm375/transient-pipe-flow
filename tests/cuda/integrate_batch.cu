@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <string_view>
 
 namespace pipe_sim {
 extern "C" cudaError_t launch_pipe_integrate_batch(
@@ -52,7 +53,7 @@ struct DeviceBuffer {
     DeviceBuffer& operator=(const DeviceBuffer&) = delete;
 };
 
-int run_batch(int batch, int steps)
+int run_batch(int batch, int steps, bool cpu_only = false)
 {
     using namespace pipe_sim;
 
@@ -145,6 +146,61 @@ int run_batch(int batch, int steps)
         return 1;
     }
 
+    // CPU Newton iteration diagnostics.
+    long long total_iterations = 0;
+    int maximum_iterations = 0;
+
+    for (int k = 1; k <= steps; ++k) {
+        const int iterations = cn[k];
+
+        total_iterations += iterations;
+        maximum_iterations =
+            std::max(maximum_iterations, iterations);
+    }
+
+    std::printf(
+        "CPU_NEWTON steps=%d "
+        "total_iterations=%lld "
+        "mean_iterations=%.6f "
+        "max_iterations=%d\n",
+        steps,
+        total_iterations,
+        steps > 0
+            ? static_cast<double>(total_iterations)/steps
+            : 0.0,
+        maximum_iterations);
+
+    // Newton iteration distribution and transition to zero iterations.
+    int zero_iterations = 0;
+    int one_iteration = 0;
+    int two_or_more_iterations = 0;
+    int last_nonzero_step = 0;
+
+    for (int k = 1; k <= steps; ++k) {
+        if (cn[k] == 0) {
+            ++zero_iterations;
+        } else if (cn[k] == 1) {
+            ++one_iteration;
+            last_nonzero_step = k;
+        } else {
+            ++two_or_more_iterations;
+            last_nonzero_step = k;
+        }
+    }
+
+    std::printf(
+        "CPU_NEWTON_DISTRIBUTION "
+        "steps=%d zero=%d one=%d two_plus=%d "
+        "last_nonzero_step=%d\n",
+        steps,
+        zero_iterations,
+        one_iteration,
+        two_or_more_iterations,
+        last_nonzero_step);
+
+    if (cpu_only)
+        return 0;
+
     // Structure-of-arrays within each independent pipe.
     std::vector<double> pressure(batch*(n+1));
     std::vector<double> flow(batch*n);
@@ -165,6 +221,9 @@ int run_batch(int batch, int steps)
     const std::size_t hcount =
         static_cast<std::size_t>(batch)*stride;
 
+    const auto gpu_start =
+        std::chrono::steady_clock::now();
+
     DeviceBuffer<double> dp(pressure.size());
     DeviceBuffer<double> df(flow.size());
     DeviceBuffer<double> di(inlet_flow.size());
@@ -177,6 +236,9 @@ int run_batch(int batch, int steps)
 
     DeviceBuffer<int> dhn(hcount);
     DeviceBuffer<IntegrationResult> dr(batch);
+
+    const auto allocation_done =
+        std::chrono::steady_clock::now();
 
     CHECK(cudaMemcpy(
         dp.ptr,pressure.data(),
@@ -192,6 +254,9 @@ int run_batch(int batch, int steps)
         di.ptr,inlet_flow.data(),
         inlet_flow.size()*sizeof(double),
         cudaMemcpyHostToDevice));
+
+    const auto input_done =
+        std::chrono::steady_clock::now();
 
     cudaEvent_t start,stop;
 
@@ -214,6 +279,9 @@ int run_batch(int batch, int steps)
 
     CHECK(cudaEventElapsedTime(
         &elapsed_ms,start,stop));
+
+    const auto kernel_done =
+        std::chrono::steady_clock::now();
 
     CHECK(cudaEventDestroy(start));
     CHECK(cudaEventDestroy(stop));
@@ -276,6 +344,54 @@ int run_batch(int batch, int steps)
         gpu_iterations.data(),dhn.ptr,
         hcount*sizeof(int),
         cudaMemcpyDeviceToHost));
+
+    const auto output_done =
+        std::chrono::steady_clock::now();
+
+    const auto milliseconds = [](
+        auto first, auto last)
+    {
+        return std::chrono::duration<double, std::milli>(
+            last - first).count();
+    };
+
+    const double allocation_ms =
+        milliseconds(gpu_start, allocation_done);
+
+    const double h2d_ms =
+        milliseconds(allocation_done, input_done);
+
+    const double kernel_wall_ms =
+        milliseconds(input_done, kernel_done);
+
+    const double d2h_ms =
+        milliseconds(kernel_done, output_done);
+
+    const double execution_ms =
+        milliseconds(allocation_done, output_done);
+
+    const double cold_start_ms =
+        milliseconds(gpu_start, output_done);
+
+    std::printf(
+        "GPU_TIMING batch=%d steps=%d "
+        "allocation_ms=%.4f "
+        "h2d_ms=%.4f "
+        "kernel_wall_ms=%.4f "
+        "d2h_ms=%.4f "
+        "execution_ms=%.4f "
+        "cold_start_ms=%.4f "
+        "execution_sims_per_second=%.3f "
+        "cold_start_sims_per_second=%.3f\n",
+        batch, steps,
+        allocation_ms,
+        h2d_ms,
+        kernel_wall_ms,
+        d2h_ms,
+        execution_ms,
+        cold_start_ms,
+        1000.0 * batch / execution_ms,
+        1000.0 * batch / cold_start_ms);
 
     long long comparisons = 0;
     long long failures = 0;
@@ -361,13 +477,31 @@ int run_batch(int batch, int steps)
 int main(int argc, char** argv)
 {
     int steps = 80;
+    bool cpu_only = false;
 
-    if (argc > 1)
-        steps = std::atoi(argv[1]);
+    if (argc > 1) {
+        if (std::string_view(argv[1]) == "--cpu-only") {
+            cpu_only = true;
+
+            if (argc > 2)
+                steps = std::atoi(argv[2]);
+        } else {
+            steps = std::atoi(argv[1]);
+        }
+    }
 
     if (steps < 0) {
         std::fprintf(stderr,"Invalid steps\n");
         return 1;
+    }
+
+    if (cpu_only) {
+        const int status = run_batch(1, steps, true);
+
+        if (status == 0)
+            std::puts("PASS CPU-only diagnostic");
+
+        return status;
     }
 
     for (int batch : {512,1024,2048}) {
