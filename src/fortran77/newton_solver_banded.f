@@ -17,6 +17,10 @@ C=======================================================================
       DOUBLE PRECISION R(202),RT(202),AB(LDAB,202)
       DOUBLE PRECISION RHS(202),DU(202),UT(202),WORK(202)
       DOUBLE PRECISION RNORM,RNEW,SNORM,USCALE,LAMBDA
+      DOUBLE PRECISION SFOLD(0:99),FDOLD(0:99)
+      DOUBLE PRECISION RHOL0,RHOR0,RHOF0,RE0,FD0
+      DOUBLE PRECISION EOS_CZ_RHO,REYNOLDS_MASS,FRICTION_SJ
+      DOUBLE PRECISION FRICTION_SOURCE
 
       LOGICAL PIPE_VALID
       EXTERNAL PIPE_VALID
@@ -53,8 +57,20 @@ C=======================================================================
          WORK(I) = U(I)
     5 CONTINUE
 
-      CALL ASSEMBLE_RESIDUAL(N,WORK,PO,MO,MINO,MOUTO,MOUTN,PINN,
-     &     DX,DT,THETA,D,A,T,Z,RS,MU,EPS,R)
+C     Cache old-time friction once per Newton solve.
+
+      DO 6 I=0,N-1
+         RHOL0 = EOS_CZ_RHO(PO(I),T,Z,RS)
+         RHOR0 = EOS_CZ_RHO(PO(I+1),T,Z,RS)
+         RHOF0 = 0.5D0*(RHOL0+RHOR0)
+         RE0 = REYNOLDS_MASS(MO(I),D,A,MU)
+         FD0 = FRICTION_SJ(RE0,EPS,D)
+         FDOLD(I) = FD0
+         SFOLD(I) = FRICTION_SOURCE(FD0,D,A,RHOF0,MO(I))
+    6 CONTINUE
+
+      CALL ASSEMBLE_RESIDUAL_INITIAL(N,WORK,PO,MO,MINO,MOUTO,MOUTN,
+     &     PINN,DX,DT,THETA,D,A,T,Z,RS,MU,EPS,R,SFOLD,FDOLD)
 
       DO 100 ITER=0,MAXIT-1
          RNORM = 0.0D0
@@ -91,8 +107,9 @@ C=======================================================================
             DO 60 I=1,NU
                UT(I) = WORK(I) + LAMBDA*DU(I)
    60       CONTINUE
-            CALL ASSEMBLE_RESIDUAL(N,UT,PO,MO,MINO,MOUTO,MOUTN,
-     &           PINN,DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RT)
+            CALL ASSEMBLE_RESIDUAL_CACHED(N,UT,PO,MO,MINO,MOUTO,MOUTN,
+     &           PINN,DX,DT,THETA,D,A,T,Z,RS,MU,EPS,RT,
+     &           SFOLD)
             RNEW = 0.0D0
             DO 65 I=1,NU
                RNEW = DMAX1(RNEW,DABS(RT(I)))
