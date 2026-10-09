@@ -6,7 +6,7 @@
 
 namespace pipe_sim {
 
-template<bool Cached>
+template<bool Cached, bool ReuseInitialFactor>
 static void assemble_residual_impl(
     int n,
     std::span<const double> u,
@@ -15,6 +15,7 @@ static void assemble_residual_impl(
     const TransientBoundary& bc,
     const TransientParameters& par,
     std::span<const double> old_friction,
+    std::span<const double> old_friction_factor,
     std::span<double> r)
 {
     if (n < 2 ||
@@ -28,6 +29,13 @@ static void assemble_residual_impl(
     if constexpr (Cached) {
         if (old_friction.size() != static_cast<std::size_t>(n))
             throw std::invalid_argument("Invalid old friction cache dimensions");
+    }
+
+    if constexpr (ReuseInitialFactor) {
+        if (old_friction_factor.size() !=
+            static_cast<std::size_t>(n))
+            throw std::invalid_argument(
+                "Invalid old friction factor cache dimensions");
     }
 
     const double dx = par.dx;
@@ -68,8 +76,18 @@ static void assemble_residual_impl(
         const double rhor = rho(u[ir]);
         const double rhof = 0.5*(rhol+rhor);
 
-        const double re = reynolds_mass(u[im],d,a,mu);
-        const double fd = friction_sj(re,eps,d);
+        double fd;
+        if constexpr (ReuseInitialFactor) {
+            if (u[im] == mo[i]) {
+                fd = old_friction_factor[i];
+            } else {
+                const double re = reynolds_mass(u[im],d,a,mu);
+                fd = friction_sj(re,eps,d);
+            }
+        } else {
+            const double re = reynolds_mass(u[im],d,a,mu);
+            fd = friction_sj(re,eps,d);
+        }
         const double sf = friction_source(fd,d,a,rhof,u[im]);
 
         // Old-time friction source.
@@ -118,8 +136,8 @@ void assemble_residual(
     const TransientParameters& par,
     std::span<double> r)
 {
-    assemble_residual_impl<false>(
-        n, u, po, mo, bc, par, {}, r);
+    assemble_residual_impl<false, false>(
+        n, u, po, mo, bc, par, {}, {}, r);
 }
 
 void assemble_residual_cached(
@@ -132,8 +150,25 @@ void assemble_residual_cached(
     std::span<const double> old_friction,
     std::span<double> r)
 {
-    assemble_residual_impl<true>(
-        n, u, po, mo, bc, par, old_friction, r);
+    assemble_residual_impl<true, false>(
+        n, u, po, mo, bc, par, old_friction, {}, r);
+}
+
+
+void assemble_residual_initial(
+    int n,
+    std::span<const double> u,
+    std::span<const double> po,
+    std::span<const double> mo,
+    const TransientBoundary& bc,
+    const TransientParameters& par,
+    std::span<const double> old_friction,
+    std::span<const double> old_friction_factor,
+    std::span<double> r)
+{
+    assemble_residual_impl<true, true>(
+        n, u, po, mo, bc, par,
+        old_friction, old_friction_factor, r);
 }
 
 } // namespace pipe_sim

@@ -28,6 +28,7 @@ struct NewtonWorkspace {
     std::vector<double> trial_state;
     std::vector<double> work_state;
     std::vector<double> old_friction;
+    std::vector<double> old_friction_factor;
     std::vector<double> initial_guess;
 
     explicit NewtonWorkspace(int n);

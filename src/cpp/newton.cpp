@@ -26,6 +26,7 @@ NewtonWorkspace::NewtonWorkspace(int n)
     trial_state.resize(nu);
     work_state.resize(nu);
     old_friction.resize(n);
+    old_friction_factor.resize(n);
     initial_guess.resize(nu);
 }
 
@@ -57,7 +58,9 @@ NewtonResult newton_solve_banded(
         ws.correction.size() != static_cast<std::size_t>(nu) ||
         ws.trial_state.size() != static_cast<std::size_t>(nu) ||
         ws.work_state.size() != static_cast<std::size_t>(nu) ||
-        ws.old_friction.size() != static_cast<std::size_t>(n)) {
+        ws.old_friction.size() != static_cast<std::size_t>(n) ||
+        ws.old_friction_factor.size() !=
+            static_cast<std::size_t>(n)) {
         throw std::invalid_argument("Newton workspace dimensions mismatch");
     }
 
@@ -122,6 +125,7 @@ NewtonResult newton_solve_banded(
 
         const double re0 = reynolds_mass(old_flow[i],d,a,mu);
         const double fd0 = friction_sj(re0,eps,d);
+        ws.old_friction_factor[i] = fd0;
 
         ws.old_friction[i] =
             friction_source(fd0,d,a,rhof0,old_flow[i]);
@@ -129,9 +133,10 @@ NewtonResult newton_solve_banded(
 
     std::copy(state.begin(),state.end(),ws.work_state.begin());
 
-    assemble_residual_cached(
+    assemble_residual_initial(
         n,ws.work_state,old_pressure,old_flow,
-        bc,par,ws.old_friction,ws.residual);
+        bc,par,ws.old_friction,
+        ws.old_friction_factor,ws.residual);
 
     constexpr int kl = 2;
     constexpr int ku = 1;
