@@ -1,0 +1,4 @@
+CPU_REFERENCE steps=8000 elapsed_ms=107.144967 simulations_per_second=9.333
+CPU_NEWTON steps=8000 total_iterations=1049 mean_iterations=0.131125 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=8000 zero=7142 one=667 two_plus=191 last_nonzero_step=858
+PASS CPU-only diagnostic

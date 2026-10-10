@@ -1,0 +1,13 @@
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_ZN8pipe_sim41_GLOBAL__N__7b930316_9_newton_cu_680dcbeb27persistent_integrate_kernelEiiiPdS1_S1_NS_10DemandRampEiNS_19TransientParametersENS_13NewtonOptionsES1_S1_S1_S1_S1_PiPNS_17IntegrationResultE' for 'sm_52'
+ptxas info    : Function properties for _ZN8pipe_sim41_GLOBAL__N__7b930316_9_newton_cu_680dcbeb27persistent_integrate_kernelEiiiPdS1_S1_NS_10DemandRampEiNS_19TransientParametersENS_13NewtonOptionsES1_S1_S1_S1_S1_PiPNS_17IntegrationResultE
+    22608 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 131 registers, 22608 bytes cumulative stack size, 560 bytes cmem[0], 372 bytes cmem[2]
+ptxas info    : Function properties for __internal_accurate_pow
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Compiling entry function '_ZN8pipe_sim41_GLOBAL__N__7b930316_9_newton_cu_680dcbeb13newton_kernelEiPdPKdS3_NS_17TransientBoundaryENS_19TransientParametersENS_13NewtonOptionsEPNS_12NewtonResultE' for 'sm_52'
+ptxas info    : Function properties for _ZN8pipe_sim41_GLOBAL__N__7b930316_9_newton_cu_680dcbeb13newton_kernelEiPdPKdS3_NS_17TransientBoundaryENS_19TransientParametersENS_13NewtonOptionsEPNS_12NewtonResultE
+    20192 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 112 registers, 20192 bytes cumulative stack size, 496 bytes cmem[0], 368 bytes cmem[2]
+ptxas info    : Function properties for __internal_accurate_pow
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
