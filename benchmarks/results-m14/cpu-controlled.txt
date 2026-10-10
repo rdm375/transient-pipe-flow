@@ -1,0 +1,36 @@
+CPU steps=80 repeat=1
+CPU_BATCH workers=1 batch=2048 steps=80 elapsed_ms=8652.7536 simulations_per_second=236.688 failures=0
+CPU_BATCH workers=2 batch=2048 steps=80 elapsed_ms=4249.1974 simulations_per_second=481.973 failures=0
+CPU_BATCH workers=4 batch=2048 steps=80 elapsed_ms=2529.3262 simulations_per_second=809.702 failures=0
+CPU_BATCH workers=8 batch=2048 steps=80 elapsed_ms=1746.9462 simulations_per_second=1172.331 failures=0
+PASS M14.6c multicore CPU batch
+CPU steps=80 repeat=2
+CPU_BATCH workers=1 batch=2048 steps=80 elapsed_ms=8637.8588 simulations_per_second=237.096 failures=0
+CPU_BATCH workers=2 batch=2048 steps=80 elapsed_ms=4399.9403 simulations_per_second=465.461 failures=0
+CPU_BATCH workers=4 batch=2048 steps=80 elapsed_ms=2539.3469 simulations_per_second=806.507 failures=0
+CPU_BATCH workers=8 batch=2048 steps=80 elapsed_ms=1763.0933 simulations_per_second=1161.595 failures=0
+PASS M14.6c multicore CPU batch
+CPU steps=80 repeat=3
+CPU_BATCH workers=1 batch=2048 steps=80 elapsed_ms=8516.5138 simulations_per_second=240.474 failures=0
+CPU_BATCH workers=2 batch=2048 steps=80 elapsed_ms=4262.8607 simulations_per_second=480.429 failures=0
+CPU_BATCH workers=4 batch=2048 steps=80 elapsed_ms=2530.3958 simulations_per_second=809.360 failures=0
+CPU_BATCH workers=8 batch=2048 steps=80 elapsed_ms=1745.3204 simulations_per_second=1173.424 failures=0
+PASS M14.6c multicore CPU batch
+CPU steps=800 repeat=1
+CPU_BATCH workers=1 batch=2048 steps=800 elapsed_ms=58168.9178 simulations_per_second=35.208 failures=0
+CPU_BATCH workers=2 batch=2048 steps=800 elapsed_ms=28959.4168 simulations_per_second=70.720 failures=0
+CPU_BATCH workers=4 batch=2048 steps=800 elapsed_ms=17167.4511 simulations_per_second=119.296 failures=0
+CPU_BATCH workers=8 batch=2048 steps=800 elapsed_ms=11850.5479 simulations_per_second=172.819 failures=0
+PASS M14.6c multicore CPU batch
+CPU steps=800 repeat=2
+CPU_BATCH workers=1 batch=2048 steps=800 elapsed_ms=58477.0186 simulations_per_second=35.022 failures=0
+CPU_BATCH workers=2 batch=2048 steps=800 elapsed_ms=29407.2709 simulations_per_second=69.643 failures=0
+CPU_BATCH workers=4 batch=2048 steps=800 elapsed_ms=16971.4337 simulations_per_second=120.673 failures=0
+CPU_BATCH workers=8 batch=2048 steps=800 elapsed_ms=11863.4245 simulations_per_second=172.631 failures=0
+PASS M14.6c multicore CPU batch
+CPU steps=800 repeat=3
+CPU_BATCH workers=1 batch=2048 steps=800 elapsed_ms=57607.9022 simulations_per_second=35.551 failures=0
+CPU_BATCH workers=2 batch=2048 steps=800 elapsed_ms=28790.6824 simulations_per_second=71.134 failures=0
+CPU_BATCH workers=4 batch=2048 steps=800 elapsed_ms=16986.2922 simulations_per_second=120.568 failures=0
+CPU_BATCH workers=8 batch=2048 steps=800 elapsed_ms=11627.4716 simulations_per_second=176.135 failures=0
+PASS M14.6c multicore CPU batch

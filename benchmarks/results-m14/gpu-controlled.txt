@@ -1,0 +1,84 @@
+GPU steps=80 repeat=1
+CPU_REFERENCE steps=80 elapsed_ms=3.995035 simulations_per_second=250.311
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=512 steps=80 allocation_ms=79.2347 h2d_ms=0.1936 kernel_wall_ms=807.5541 d2h_ms=1.8296 execution_ms=809.5773 cold_start_ms=888.8120 execution_sims_per_second=632.429 cold_start_sims_per_second=576.050\nBATCH batch=512 steps=   80 kernel_ms=    807.5315 simulations_per_second=  634.0310 comparisons=352768 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=4.008328 simulations_per_second=249.481
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=1024 steps=80 allocation_ms=0.6333 h2d_ms=0.2767 kernel_wall_ms=761.3868 d2h_ms=3.4160 execution_ms=765.0794 cold_start_ms=765.7128 execution_sims_per_second=1338.423 cold_start_sims_per_second=1337.316\nBATCH batch=1024 steps=   80 kernel_ms=    761.3765 simulations_per_second= 1344.9325 comparisons=705536 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=5.180879 simulations_per_second=193.017
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=2048 steps=80 allocation_ms=0.9334 h2d_ms=0.5049 kernel_wall_ms=888.2805 d2h_ms=5.7756 execution_ms=894.5609 cold_start_ms=895.4943 execution_sims_per_second=2289.391 cold_start_sims_per_second=2287.005\nBATCH batch=2048 steps=   80 kernel_ms=    888.2692 simulations_per_second= 2305.6073 comparisons=1411072 failures=0 max_abs=9.313e-10
+PASS M14.6b batch parity and throughput
+GPU steps=80 repeat=2
+CPU_REFERENCE steps=80 elapsed_ms=4.267973 simulations_per_second=234.303
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=512 steps=80 allocation_ms=60.5020 h2d_ms=0.1815 kernel_wall_ms=750.9711 d2h_ms=1.8483 execution_ms=753.0009 cold_start_ms=813.5029 execution_sims_per_second=679.946 cold_start_sims_per_second=629.377\nBATCH batch=512 steps=   80 kernel_ms=    750.9530 simulations_per_second=  681.8003 comparisons=352768 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=4.024399 simulations_per_second=248.484
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=1024 steps=80 allocation_ms=0.6499 h2d_ms=0.2680 kernel_wall_ms=760.3305 d2h_ms=4.1705 execution_ms=764.7690 cold_start_ms=765.4189 execution_sims_per_second=1338.966 cold_start_sims_per_second=1337.830\nBATCH batch=1024 steps=   80 kernel_ms=    760.3218 simulations_per_second= 1346.7981 comparisons=705536 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=4.010138 simulations_per_second=249.368
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=2048 steps=80 allocation_ms=0.7005 h2d_ms=0.4317 kernel_wall_ms=889.6889 d2h_ms=5.8000 execution_ms=895.9206 cold_start_ms=896.6211 execution_sims_per_second=2285.917 cold_start_sims_per_second=2284.131\nBATCH batch=2048 steps=   80 kernel_ms=    889.6808 simulations_per_second= 2301.9491 comparisons=1411072 failures=0 max_abs=9.313e-10
+PASS M14.6b batch parity and throughput
+GPU steps=80 repeat=3
+CPU_REFERENCE steps=80 elapsed_ms=3.947830 simulations_per_second=253.304
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=512 steps=80 allocation_ms=61.1448 h2d_ms=0.2007 kernel_wall_ms=749.6303 d2h_ms=1.7821 execution_ms=751.6131 cold_start_ms=812.7579 execution_sims_per_second=681.202 cold_start_sims_per_second=629.954\nBATCH batch=512 steps=   80 kernel_ms=    749.6123 simulations_per_second=  683.0197 comparisons=352768 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=4.007863 simulations_per_second=249.510
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=1024 steps=80 allocation_ms=0.6360 h2d_ms=0.2633 kernel_wall_ms=760.7367 d2h_ms=3.4042 execution_ms=764.4042 cold_start_ms=765.0402 execution_sims_per_second=1339.605 cold_start_sims_per_second=1338.492\nBATCH batch=1024 steps=   80 kernel_ms=    760.7288 simulations_per_second= 1346.0776 comparisons=705536 failures=0 max_abs=9.313e-10
+CPU_REFERENCE steps=80 elapsed_ms=4.130120 simulations_per_second=242.124
+CPU_NEWTON steps=80 total_iterations=160 mean_iterations=2.000000 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=80 zero=0 one=0 two_plus=80 last_nonzero_step=80
+GPU_TIMING batch=2048 steps=80 allocation_ms=0.7660 h2d_ms=0.4942 kernel_wall_ms=890.7798 d2h_ms=5.8183 execution_ms=897.0923 cold_start_ms=897.8584 execution_sims_per_second=2282.931 cold_start_sims_per_second=2280.983\nBATCH batch=2048 steps=   80 kernel_ms=    890.7697 simulations_per_second= 2299.1354 comparisons=1411072 failures=0 max_abs=9.313e-10
+PASS M14.6b batch parity and throughput
+GPU steps=800 repeat=1
+CPU_REFERENCE steps=800 elapsed_ms=29.599755 simulations_per_second=33.784
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=512 steps=800 allocation_ms=67.3769 h2d_ms=0.1854 kernel_wall_ms=5097.6120 d2h_ms=15.6393 execution_ms=5113.4366 cold_start_ms=5180.8135 execution_sims_per_second=100.128 cold_start_sims_per_second=98.826\nBATCH batch=512 steps=  800 kernel_ms=   5097.6499 simulations_per_second=  100.4384 comparisons=2564608 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=28.761067 simulations_per_second=34.769
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=1024 steps=800 allocation_ms=0.7489 h2d_ms=0.2867 kernel_wall_ms=5201.5320 d2h_ms=31.4107 execution_ms=5233.2295 cold_start_ms=5233.9784 execution_sims_per_second=195.673 cold_start_sims_per_second=195.645\nBATCH batch=1024 steps=  800 kernel_ms=   5201.5752 simulations_per_second=  196.8634 comparisons=5129216 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=28.569600 simulations_per_second=35.002
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=2048 steps=800 allocation_ms=0.8699 h2d_ms=0.4277 kernel_wall_ms=6116.5702 d2h_ms=61.2832 execution_ms=6178.2811 cold_start_ms=6179.1510 execution_sims_per_second=331.484 cold_start_sims_per_second=331.437\nBATCH batch=2048 steps=  800 kernel_ms=   6116.6230 simulations_per_second=  334.8253 comparisons=10258432 failures=0 max_abs=1.863e-09
+PASS M14.6b batch parity and throughput
+GPU steps=800 repeat=2
+CPU_REFERENCE steps=800 elapsed_ms=27.457199 simulations_per_second=36.420
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=512 steps=800 allocation_ms=62.0759 h2d_ms=0.2134 kernel_wall_ms=5095.0377 d2h_ms=15.0220 execution_ms=5110.2731 cold_start_ms=5172.3490 execution_sims_per_second=100.190 cold_start_sims_per_second=98.988\nBATCH batch=512 steps=  800 kernel_ms=   5095.0635 simulations_per_second=  100.4894 comparisons=2564608 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=27.431775 simulations_per_second=36.454
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=1024 steps=800 allocation_ms=0.7698 h2d_ms=0.2954 kernel_wall_ms=5201.7336 d2h_ms=30.7443 execution_ms=5232.7734 cold_start_ms=5233.5432 execution_sims_per_second=195.690 cold_start_sims_per_second=195.661\nBATCH batch=1024 steps=  800 kernel_ms=   5201.7739 simulations_per_second=  196.8559 comparisons=5129216 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=27.500685 simulations_per_second=36.363
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=2048 steps=800 allocation_ms=0.8618 h2d_ms=0.4509 kernel_wall_ms=6106.2741 d2h_ms=62.9373 execution_ms=6169.6623 cold_start_ms=6170.5241 execution_sims_per_second=331.947 cold_start_sims_per_second=331.900\nBATCH batch=2048 steps=  800 kernel_ms=   6106.3271 simulations_per_second=  335.3898 comparisons=10258432 failures=0 max_abs=1.863e-09
+PASS M14.6b batch parity and throughput
+GPU steps=800 repeat=3
+CPU_REFERENCE steps=800 elapsed_ms=28.611037 simulations_per_second=34.952
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=512 steps=800 allocation_ms=58.9131 h2d_ms=0.1928 kernel_wall_ms=5091.8773 d2h_ms=15.5535 execution_ms=5107.6236 cold_start_ms=5166.5367 execution_sims_per_second=100.242 cold_start_sims_per_second=99.099\nBATCH batch=512 steps=  800 kernel_ms=   5091.8999 simulations_per_second=  100.5519 comparisons=2564608 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=33.333740 simulations_per_second=30.000
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=1024 steps=800 allocation_ms=1.0816 h2d_ms=0.3457 kernel_wall_ms=5198.9223 d2h_ms=30.1090 execution_ms=5229.3770 cold_start_ms=5230.4585 execution_sims_per_second=195.817 cold_start_sims_per_second=195.776\nBATCH batch=1024 steps=  800 kernel_ms=   5198.9678 simulations_per_second=  196.9622 comparisons=5129216 failures=0 max_abs=1.863e-09
+CPU_REFERENCE steps=800 elapsed_ms=27.409320 simulations_per_second=36.484
+CPU_NEWTON steps=800 total_iterations=991 mean_iterations=1.238750 max_iterations=2
+CPU_NEWTON_DISTRIBUTION steps=800 zero=0 one=609 two_plus=191 last_nonzero_step=800
+GPU_TIMING batch=2048 steps=800 allocation_ms=0.8850 h2d_ms=0.4379 kernel_wall_ms=6103.8252 d2h_ms=68.5023 execution_ms=6172.7655 cold_start_ms=6173.6505 execution_sims_per_second=331.780 cold_start_sims_per_second=331.732\nBATCH batch=2048 steps=  800 kernel_ms=   6103.8911 simulations_per_second=  335.5237 comparisons=10258432 failures=0 max_abs=1.863e-09
+PASS M14.6b batch parity and throughput

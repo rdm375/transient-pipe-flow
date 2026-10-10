@@ -6,6 +6,7 @@ C=======================================================================
      &                          DX,DT,THETA,D,A,T,Z,RS,MU,EPS,
      &                          RTOL,STOL,MAXIT,VERBOSE,U,
      &                          INFO,NITER)
+      USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
       IMPLICIT NONE
       INTEGER N,MAXIT,VERBOSE,INFO,NITER,I
       DOUBLE PRECISION GUESS(202)
@@ -13,6 +14,8 @@ C=======================================================================
       DOUBLE PRECISION MINO,MOUTO,MOUTN,PINN,DX,DT,THETA
       DOUBLE PRECISION D,A,T,Z,RS,MU,EPS,RTOL,STOL
 
+      LOGICAL PIPE_VALID
+      EXTERNAL PIPE_VALID
 C     Old state is the initial Newton guess.  The prescribed new inlet
 C     pressure is inserted explicitly; all other new-time quantities
 C     begin from their old-time values.
@@ -23,6 +26,20 @@ C     begin from their old-time values.
          RETURN
       ENDIF
 
+      IF (.NOT.PIPE_VALID(N,PO,MO,MINO,DX,DT,THETA,
+     & D,A,T,Z,RS,MU,EPS,RTOL,STOL,MAXIT).OR.
+     & .NOT.IEEE_IS_FINITE(MOUTO).OR.
+     & .NOT.IEEE_IS_FINITE(MOUTN).OR.
+     & .NOT.IEEE_IS_FINITE(PINN)) THEN
+         INFO=3
+         NITER=0
+         RETURN
+      ENDIF
+      IF (PINN.LE.0D0) THEN
+         INFO=3
+         NITER=0
+         RETURN
+      ENDIF
       GUESS(1) = PINN
       GUESS(2) = MINO
       DO 10 I=0,N-1

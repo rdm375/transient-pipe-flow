@@ -31,3 +31,7 @@ __pycache__/
 
 # M9 diagnostic and benchmark results
 /benchmarks/results-m9/
+
+# Fortran module build artifacts
+*.mod
+*.smod

@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-09T02:23:01.822505+00:00",
+  "git_commit": "9e1c57d9be12c4fd9bb03f6ce19b7eb3932c84ac",
+  "git_describe": "m9e-complete-2-g9e1c57d",
+  "git_status": "M benchmarks/run_m10_baseline.py\n M m10.mk\n?? benchmarks/generate_m10_banded_newton.py\n?? benchmarks/m10_banded_parity.f90\n?? benchmarks/m10_banded_stress.f90\n?? benchmarks/m10_bandwidth_audit.py\n?? benchmarks/m10_direct_banded_assembly.f90\n?? benchmarks/m10_jacobian_numeric_audit.f90\n?? benchmarks/m10_physical_jacobian_parity.f90\n?? benchmarks/results-m10/\n?? experiments/\n?? src/fortran77/banded_solve.f\n?? src/fortran77/newton_banded_entry.f\n?? src/fortran77/newton_solver_banded.f\n?? src/fortran77/transient_jacobian_banded.f",
+  "compiler": "GNU Fortran (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.43",
+  "processor": "",
+  "cpu_count": 8,
+  "repetitions": 5,
+  "meshes": [
+    10,
+    20,
+    40,
+    80,
+    100
+  ],
+  "timesteps": [
+    60.0,
+    30.0,
+    15.0
+  ],
+  "duration": 1200.0,
+  "executable": "/nvme/Sync/isothermal-pipe-sim/build/m10_cpu_banded",
+  "timing": "Fortran CPU_TIME around INTEGRATE_TRANSIENT",
+  "wall_timing": "Python perf_counter around subprocess",
+  "numerical_baseline": "m9e-complete",
+  "source": "existing INTEGRATE_TRANSIENT, unmodified"
+}

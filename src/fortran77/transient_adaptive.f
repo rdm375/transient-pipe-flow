@@ -11,6 +11,7 @@ C=======================================================================
      & CFLMAX,BFRAC,MAXREJ,MAXREC,TIME,DTREC,HMIN,HOUT,
      & HPOUT,HLINE,HNIT,HETA,HBAL,HCFL,NACC,NREJ,NTOTAL,
      & NNEWTON,INFO)
+      USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
       IMPLICIT NONE
       INTEGER N,MAXIT,MAXREJ,MAXREC,NACC,NREJ,NTOTAL
       INTEGER NNEWTON,INFO,HNIT(0:*),I,K,NI,REJ,STARTUP
@@ -25,10 +26,42 @@ C=======================================================================
       DOUBLE PRECISION H,HPREV,TNOW,TNEXT,QOLD,QNEW,QPREV
       DOUBLE PRECISION MASS0,MASS1,MASSOLD,ETA,VAL,SCALE,FAC
       DOUBLE PRECISION CS,CF,DEMAND_RAMP,BOUND
+      LOGICAL PIPE_VALID
+      EXTERNAL PIPE_VALID
+      IF (.NOT.IEEE_IS_FINITE(DURATION).OR.
+     & .NOT.IEEE_IS_FINITE(DTINIT).OR.
+     & .NOT.IEEE_IS_FINITE(DTMIN).OR.
+     & .NOT.IEEE_IS_FINITE(DTMAX).OR.
+     & .NOT.IEEE_IS_FINITE(ETOL).OR.
+     & .NOT.IEEE_IS_FINITE(CFLMAX).OR.
+     & .NOT.IEEE_IS_FINITE(BFRAC)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (.NOT.PIPE_VALID(N,PO,MO,MINO,DX,DTINIT,
+     & THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,MAXIT)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (.NOT.IEEE_IS_FINITE(PIN).OR.
+     & .NOT.IEEE_IS_FINITE(MDOT0).OR.
+     & .NOT.IEEE_IS_FINITE(MDOT1).OR.
+     & .NOT.IEEE_IS_FINITE(TRAMP)) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (PIN.LE.0D0.OR.TRAMP.LT.0D0) THEN
+         INFO=3
+         RETURN
+      ENDIF
       IF (N.LT.2.OR.N.GT.100.OR.MAXREC.LT.1.OR.
-     & DURATION.LE.0D0.OR.DTMIN.LE.0D0.OR.DTMAX.LT.DTMIN
-     & .OR.DTINIT.LE.0D0.OR.ETOL.LE.0D0.OR.
-     & THETA.LT.0D0.OR.THETA.GT.1D0.OR.MAXREJ.LT.0)
+     & MAXREJ.LT.0) THEN
+         INFO=3
+         RETURN
+      ENDIF
+      IF (DURATION.LE.0D0.OR.DTMIN.LE.0D0.OR.
+     & DTMAX.LT.DTMIN.OR.DTINIT.LE.0D0.OR.
+     & ETOL.LE.0D0.OR.THETA.LT.0D0.OR.THETA.GT.1D0)
      & THEN
          INFO=3
          RETURN
@@ -93,6 +126,8 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
      & PIN,DX,H,THETA,D,A,T,Z,RS,MU,EPS,RTOL,STOL,
      & MAXIT,0,U,INFO,NI)
       NTOTAL=NTOTAL+1
+C     Count Newton work for every attempted solve.
+      NNEWTON=NNEWTON+NI
       IF (INFO.NE.0) THEN
          REJ=REJ+1
          NREJ=NREJ+1
@@ -103,7 +138,6 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
          H=0.5D0*H
          GOTO 200
       ENDIF
-      NNEWTON=NNEWTON+NI
       PN(0)=U(1)
       DO 210 I=0,N-1
          MN(I)=U(2*I+3)
@@ -128,6 +162,11 @@ C     Optional acoustic ACCURACY cap (not implicit stability).
          ETA=DMAX1(ETA,2D0*CF*H*H*VAL/
      &                ((H+HPREV)*5D0))
          ETA=ETA/ETOL
+      ENDIF
+C     Fail safely on nonfinite error indicators.
+      IF (.NOT.IEEE_IS_FINITE(ETA).OR.ETA.GT.1D100) THEN
+         INFO=8
+         RETURN
       ENDIF
       IF (ETA.GT.1D0) THEN
          REJ=REJ+1
