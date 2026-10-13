@@ -59,6 +59,27 @@ if(PIPE_SIM_BUILD_CPP)
             COMMAND pipe_sim_cpp 100 8000
         )
 
+        # Spatial-resolution regression tests.
+        add_test(
+            NAME cpp_spatial_resolution_200
+            COMMAND pipe_sim_cpp 200 80
+        )
+
+        add_test(
+            NAME cpp_spatial_resolution_400
+            COMMAND pipe_sim_cpp 400 80
+        )
+
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+        add_test(
+            NAME cpp_spatial_convergence
+            COMMAND
+                "${Python3_EXECUTABLE}"
+                "${PROJECT_SOURCE_DIR}/tests/spatial_convergence.py"
+                "$<TARGET_FILE:pipe_sim_cpp>"
+        )
+
         add_test(
             NAME cpp_zero_steps
             COMMAND pipe_sim_cpp 100 0

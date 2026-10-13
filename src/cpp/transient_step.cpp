@@ -16,7 +16,7 @@ NewtonResult transient_step(
     std::span<double> new_state,
     NewtonWorkspace& ws)
 {
-    if (n < 2 || n > 100)
+    if (n < 2)
         return {3, 0};
 
     const int nu = 2*n + 2;

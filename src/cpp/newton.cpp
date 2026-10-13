@@ -13,8 +13,8 @@ namespace pipe_sim {
 
 NewtonWorkspace::NewtonWorkspace(int n)
 {
-    if (n < 2 || n > 100)
-        throw std::invalid_argument("Newton workspace requires 2 <= n <= 100");
+    if (n < 2)
+        throw std::invalid_argument("Newton workspace requires n >= 2");
 
     const int nu = 2*n + 2;
 
@@ -40,7 +40,7 @@ NewtonResult newton_solve_banded(
     const NewtonOptions& opt,
     NewtonWorkspace& ws)
 {
-    if (n < 2 || n > 100)
+    if (n < 2)
         return {3,0};
 
     const int nu = 2*n + 2;

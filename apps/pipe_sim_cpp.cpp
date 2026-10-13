@@ -21,8 +21,8 @@ int main(int argc, char** argv)
     if (argc > 2)
         steps = std::stoi(argv[2]);
 
-    if (n < 2 || n > 100 || steps < 0) {
-        std::cerr << "Usage: pipe_sim_cpp [cells 2..100] [steps >= 0]\n";
+    if (n < 2 || steps < 0) {
+        std::cerr << "Usage: pipe_sim_cpp [cells >= 2] [steps >= 0]\n";
         return 2;
     }
 

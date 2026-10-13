@@ -38,7 +38,7 @@ double linepack_cz(
     std::span<const double> pressure,
     const TransientParameters& par)
 {
-    if (n < 2 || n > 100 ||
+    if (n < 2 ||
         pressure.size() != static_cast<std::size_t>(n+1)) {
         throw std::invalid_argument("Invalid linepack dimensions");
     }
@@ -76,7 +76,7 @@ IntegrationResult integrate_transient(
     const IntegrationHistory& hist,
     IntegrationWorkspace& ws)
 {
-    if (n < 2 || n > 100 || steps < 0)
+    if (n < 2 || steps < 0)
         return {3, 0, 0.0};
 
     if (pressure.size() != static_cast<std::size_t>(n+1) ||
