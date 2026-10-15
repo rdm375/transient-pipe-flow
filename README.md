@@ -107,3 +107,12 @@ Consult [CMakeLists.txt](CMakeLists.txt), [Makefile](Makefile), and [benchmark s
 The implementation is derived from public governing equations and numerical literature. Prior proprietary experience may motivate questions but is **not** a source of equations, algorithms, code, data, heuristics, or tests. Numerical discrepancies are investigated causally rather than concealed by widening tolerances. Performance results are tied to their measured workloads and retained evidence.
 
 See [provenance](docs/provenance.md) and [references](docs/references.bib).
+
+## License
+
+Copyright (C) 2026 Richard Myers.
+
+This project is licensed under the GNU Affero General Public License,
+version 3 only (AGPL-3.0-only).
+
+See [LICENSE](LICENSE) for the complete license text.
